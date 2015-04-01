@@ -1,0 +1,12 @@
+{
+	"apps" : [{
+		"name"		: "autopilot-server",
+		"script"	: "./server.js",
+		"cwd"		: "./",
+		"instances"	: 0,
+		"exec_mode"	: "cluster_mode",
+		"env": {
+			"BUILD_ENVIRONMENT": "production"
+		}
+	}]
+}

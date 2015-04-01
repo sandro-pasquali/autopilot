@@ -1,0 +1,10 @@
+{
+	"apps" : [{
+		"name"		: "autopilot-dev",
+		"script"	: "./server.js",
+		"cwd"		: "./",
+		"env": {
+			"BUILD_ENVIRONMENT": "development"
+		}
+	}]
+}
