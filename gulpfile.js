@@ -47,6 +47,7 @@ gulp.task('scaffold', function() {
 //
 gulp.task('lint-js', ['scaffold'], function() {
 	return gulp.src(path.join(env.SOURCE_SCRIPTS_DIR, '**/*.js'))
+  		.pipe(changed(env.SOURCE_SCRIPTS_DIR))
 		.pipe(jshint())
 		.pipe(jshint.reporter('default'));
 });
@@ -63,6 +64,7 @@ gulp.task('js', ['lint-js'], function() {
 //
 gulp.task('lint-coffee', ['scaffold'], function() {
 	return gulp.src(path.join(env.SOURCE_SCRIPTS_DIR, '**/*.coffee'))
+  		.pipe(changed(env.SOURCE_SCRIPTS_DIR))
 		.pipe(coffeelint('./coffeelint.json'))
 		.pipe(coffeelint.reporter('default'))
 });
@@ -75,7 +77,9 @@ gulp.task('coffee', ['lint-coffee'], function() {
   			extension: '.js'
   		}))
   		.pipe(sourcemaps.init())
-    	.pipe(coffee({bare: true}))
+    	.pipe(coffee({
+    		bare: true
+    	}))
     	.pipe(sourcemaps.write())
     	.pipe(gulp.dest(env.SCRIPTS_DIR))
 });
@@ -94,6 +98,9 @@ gulp.task('styles', function() {
 
 gulp.task('templates', function () {  
 	return gulp.src(path.join(env.SOURCE_TEMPLATES_DIR, '/**/*.hbs'))
+  		.pipe(changed(env.TEMPLATES_DIR, {
+  			extension: '.js'
+  		}))
 		.pipe(handlebars())
 		.pipe(wrap('var Handlebars = require("handlebars/runtime")["default"];module.exports = Handlebars.template(<%= contents %>);'))
 		.pipe(gulp.dest(env.TEMPLATES_DIR));
@@ -101,6 +108,7 @@ gulp.task('templates', function () {
 
 gulp.task('partials', function () {  
 	return gulp.src(path.join(env.SOURCE_PARTIALS_DIR, '/**/*.html'))
+  		.pipe(changed(env.PARTIALS_DIR))
 		.pipe(gulp.dest(env.PARTIALS_DIR));
 });
 
