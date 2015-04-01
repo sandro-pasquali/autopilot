@@ -90,8 +90,6 @@ module.exports = function(app, server) {
 		throw new Error("No BUILD_ENVIRONMENT specified. Use either `npm run-script dev` or `npm run-script prod`");
 	}
 	
-log.info("**", process.env.BUILD_ENVIRONMENT);
-	
 	//	When in development run a single PM2 instance that restarts the server
 	//	whenever a change happens in the build folder (post-gulp)
 	//
@@ -106,6 +104,17 @@ log.info("**", process.env.BUILD_ENVIRONMENT);
 						process.exit(0);
 					});
 				} else {
+					//	The route called by gulp when it has completed.
+					//	Note that only DEVELOPMENT servers have this built in.
+					//
+					app.get('/gulp/restart', function(req, res) {
+						exec('pm2 restart autopilot-dev', function(err) {
+							if(err) {
+								return log.error(err);
+							}
+							log.info('DEV SERVER gulp-restart');
+						});
+					});
 					listen(app,server);
 				}
 			});
@@ -138,7 +147,7 @@ log.info("**", process.env.BUILD_ENVIRONMENT);
 		
 		//	Kill this process/server; pm2 is now running it.
 		//
-		console.log("Swanson now running 'tings; try `pm2 list` to get an index to your running server cluster");
+		console.log("PRODUCTION cluster now running. Try `pm2 list` to get an index to your running server cluster");
 		
 		server.close();
 		process.exit(0);

@@ -4,7 +4,7 @@ var exec = require('child_process').exec;
 var bunyan = require('bunyan');
 
 var log = bunyan.createLogger({
-	name: 'swanson-log',
+	name: 'autopilot',
 	streams: [{
 		path: env.LOG_FILE,
 		type: 'file'
