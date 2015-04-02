@@ -2,7 +2,7 @@
   "name": "autopilot",
   "version": "1.0.0",
   "description": "Project scaffolding with build/deploy and dashboard",
-  "main": "server.js",
+  "main": "./server.js",
   "keywords": [
     "build",
     "deploy",
@@ -12,15 +12,15 @@
   ],
   "scripts": {
     "test": "mocha ./spec --require ./spec/helpers/chai.js --reporter spec",
-    "prod": "node server.js production",
-    "dev": "node server.js development",
-    "start": "node server.js development"
+    "config": "node bin/config.js",
+    "start": "node server.js"
   },
   "author": "Sandro Pasquali <spasquali@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "bcrypt": "^0.8.2",
+    "bluebird": "^2.9.24",
     "body-parser": "^1.12.2",
-    "browser-sync": "^2.5.0",
     "browserify": "^8.1.1",
     "bunyan": "^1.3.4",
     "chai": "^1.10.0",
@@ -42,6 +42,7 @@
     "gulp-uglify": "^1.1.0",
     "gulp-wrap": "^0.10.1",
     "hbs": "^3.0.1",
+    "level": "^0.18.0",
     "mkdirp": "^0.5.0",
     "mocha": "^2.1.0",
     "node-uuid": "^1.4.3",

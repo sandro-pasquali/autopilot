@@ -13,12 +13,14 @@ export SCRIPTS_DIR=build/js
 export STYLES_DIR=build/css
 
 export SERVER_ROUTES=./router/routes
+export BUILD_ENVIRONMENT=development
 
 export PROTOCOL=http
-export URI=localhost
 export HOST=127.0.0.1
 export PORT=2122
 export SESSION_SECRET=somesecretstring
 
 export WORKING_FOLDER=/.swanson
 export LOG_FILE=/.swanson/output.log
+export LEVEL_DATA_DIR=./data
+export NUM_CLUSTER_CORES=0
