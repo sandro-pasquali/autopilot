@@ -4,9 +4,10 @@ var fs = require('fs');
 var path = require('path');
 var inquirer = require("inquirer");
 var levelup = require('level');
-var pm2 = require('pm2');
+var bcrypt = require('bcrypt');
 var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
+var dulcimer = require('dulcimer');
 
 var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
 
@@ -63,8 +64,13 @@ try {
 mkdirp.sync(config.LEVEL_DATA_DIR);
 mkdirp.sync(PM2Dir);
 
+//	Configure DB, models, etc.
+//
 var db = levelup(config.LEVEL_DATA_DIR);
+dulcimer.connect(config.LEVEL_DATA_DIR);
 
+//	The question/answer definitions
+//
 var questions = [{
 	type: "confirm",
 	name: "BUILD_ENVIRONMENT",
@@ -101,7 +107,7 @@ var questions = [{
 	type: "input",
 	name: "PORT",
 	default: config.PORT.toString(),
-	message: "Enter Port number (do not add colon(:)). Hit ENTER for no port.",
+	message: "Enter Port number (do not add colon(:))",
 	validate : function(answer) {
 	
 		var errstr = "Invalid port number. 0 < port <= 65535, or ENTER for no port";
@@ -123,6 +129,32 @@ var questions = [{
 		return true;
 	},
 	when: check('BUILD_ENVIRONMENT')
+}, {
+	type: "input",
+	name: "GITHUB_USERNAME",
+	default: config.GITHUB_USERNAME || "",
+	message: "Github username",
+	validate: function(answer) {
+		if(!/^\w[\w-]+$/i.test(answer)) {
+			return "Username may only contain alphanumeric characters or dashes and cannot begin with a dash";
+		}
+		
+		return true;
+	},
+	when: check('BUILD_ENVIRONMENT')
+}, {
+	type: "input",
+	name: "GITHUB_PASSWORD",
+	default: config.GITHUB_PASSWORD || "",
+	message: "Github password",
+	validate: function(answer) {
+		if(!/^(?=.*\d)[^\s]{7,}$/i.test(answer)) {
+			return "7 characters and at least one number, no spaces";
+		}
+		
+		return true
+	},
+	when: check('BUILD_ENVIRONMENT')
 	
 	//	The following are exclusively DEVELOPMENT questions
 	
@@ -131,7 +163,12 @@ var questions = [{
 	name: "DEV_AUTO_RELOAD",
 	default: config.DEV_AUTO_RELOAD,
 	message: "Auto-reload on /source changes (reload browser)?",
-	when: !check('BUILD_ENVIRONMENT')
+	when: function(answers) {
+		return !check('BUILD_ENVIRONMENT')(answers);
+	}
+	
+	//	The following are in ALL build environments.	
+	
 }];
 
 function check(p) {
@@ -141,6 +178,9 @@ function check(p) {
 }
 
 inquirer.prompt(questions, function(a) {
+
+	var model;
+	var GithubCredentialsFactory;
 
 	config.BUILD_ENVIRONMENT = a.BUILD_ENVIRONMENT ? "production" : "development";
 	config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
@@ -152,9 +192,33 @@ inquirer.prompt(questions, function(a) {
 	//
 	config.SESSION_SECRET = uuid.v4();
 
+	//	bcrypt Github password and store credentials in LevelDB
+	//	when in PRODUCTION environment
+	//
+	if(a.BUILD_ENVIRONMENT) {
+
+		GithubCredentialsFactory = new dulcimer.Model({
+			username: "",
+			password: ""
+		}, {
+			name: 'github_credentials'
+		});
+		model = GithubCredentialsFactory.create({
+			username: a.GITHUB_USERNAME,
+			password: bcrypt.hashSync(a.GITHUB_PASSWORD, 8)
+		});
+		
+		model.save(function(err) {
+			if(err) {
+				log.error(err);
+			}
+		});
+	}
+	
+	//	These JSON objects become PM2 start configs. See below.
+	//
 	prodPM2.apps[0].script = npmPackage.main;
 	prodPM2.apps[0].instances = config.NUM_CLUSTER_CORES;
-	
 	devPM2.apps[0].script = npmPackage.main;
 	
 	//	Update /pm2_processes/prod.json,dev.json files, create a

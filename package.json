@@ -2,6 +2,10 @@
   "name": "autopilot",
   "version": "1.0.0",
   "description": "Project scaffolding with build/deploy and dashboard",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandro-pasquali/autopilot.git"
+  },
   "main": "./server.js",
   "keywords": [
     "build",
