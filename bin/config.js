@@ -4,6 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var inquirer = require("inquirer");
 var levelup = require('level');
+var pm2 = require('pm2');
 var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
 
@@ -79,9 +80,7 @@ var questions = [{
 	validate: function(answer) {
 		return /^\d{1,2}$/.test(answer) ? true : "Please enter only numbers, max of 99";
 	},
-	when: function(answers) {
-		return answers.BUILD_ENVIRONMENT;
-	}
+	when: check('BUILD_ENVIRONMENT')
 }, {
 	type: "list",
 	name: "PROTOCOL",
@@ -91,17 +90,13 @@ var questions = [{
 		'http',
 		'https'
 	],
-	when: function(answers) {
-		return answers.BUILD_ENVIRONMENT;
-	}
+	when: check('BUILD_ENVIRONMENT')
 }, {
 	type: "input",
 	name: "HOST",
 	default: config.HOST.toString(),
 	message: "Enter Host (do not add protocol:// or :port)",
-	when: function(answers) {
-		return answers.BUILD_ENVIRONMENT;
-	}
+	when: check('BUILD_ENVIRONMENT')
 }, {
 	type: "input",
 	name: "PORT",
@@ -127,14 +122,16 @@ var questions = [{
 		
 		return true;
 	},
-	when: function(answers) {
-		return answers.BUILD_ENVIRONMENT;
-	}
+	when: check('BUILD_ENVIRONMENT')
+	
+	//	The following are exclusively DEVELOPMENT questions
+	
 }, {
-	type: "input",
-	name: "dummy",
-	default: 'dumb',
-	message: "Dummy"
+	type: "confirm",
+	name: "DEV_AUTO_RELOAD",
+	default: config.DEV_AUTO_RELOAD,
+	message: "Auto-reload on /source changes (reload browser)?",
+	when: !check('BUILD_ENVIRONMENT')
 }];
 
 function check(p) {

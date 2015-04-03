@@ -29,3 +29,4 @@ export PROTOCOL=http
 export HOST=127.0.0.1
 export PORT=2122
 export NUM_CLUSTER_CORES=0
+export DEV_AUTO_RELOAD=yes
