@@ -1,13 +1,11 @@
 "use strict";
 
 var fs = require('fs');
-var Promise = require('bluebird');
 var path = require('path');
 var inquirer = require("inquirer");
 var levelup = require('level');
 var mkdirp = require('mkdirp');
-
-Promise.promisifyAll(fs);
+var uuid = require('node-uuid');
 
 var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
 
@@ -32,33 +30,32 @@ var devPM2 = {
 	}]
 };
 
-var config = fs
-.readFileSync('./bin/defaults.sh', {encoding:'utf8'})
-.split('\n')
-.reduce(function(prev, next) {
-
-	var line = next.trim();
+//	Grab config data. Either a previous build, or initially from defaults.
+//	Configuration is performed on every `npm start`.
+//
+try {
+	var config = JSON.parse(fs.readFileSync('bin/.config.json', { 
+		encoding: 'utf8'
+	}));
+} catch(e) {
+	var config = fs
+	.readFileSync('./bin/defaults.sh', {
+		encoding:'utf8'
+	})
+	.split('\n')
+	.reduce(function(prev, next) {
 	
-	var m = line.match(/^export (.*)=(.*)$/);
-
-	if(m) {
-		prev[m[1]] = m[2];
-	}
+		var line = next.trim();
+		var m = line.match(/^export (.*)=(.*)$/);
 	
-	return prev;
-
-}, {
-	//	Command line arguments for build env. When PM2 is starting the 
-	//	server, it will pass arg to process.env; when npm run-script [prod|dev]
-	//	is used, the build arg will be in argv[2].
-	//
-	//	Either "production" or "development". Anything else = "development".
-	//
-	//	@see package.json#scripts#prod&dev
-	//	@see env/index.js
-	//
-	BUILD_ENVIRONMENT: process.argv[2] || process.env.BUILD_ENVIRONMENT || 'development'
-});
+		if(m) {
+			prev[m[1]] = m[2];
+		}
+		
+		return prev;
+	
+	}, {});
+}
 
 //	Create folders for level data and PM2 process startup configs.
 //
@@ -77,7 +74,7 @@ var questions = [{
 	//
 	type: "input",
 	name: "NUM_CLUSTER_CORES",
-	default: config.NUM_CLUSTER_CORES,
+	default: config.NUM_CLUSTER_CORES.toString(),
 	message: "How many cores will the server cluster use (0 = all available)?",
 	validate: function(answer) {
 		return /^\d{1,2}$/.test(answer) ? true : "Please enter only numbers, max of 99";
@@ -88,7 +85,7 @@ var questions = [{
 }, {
 	type: "list",
 	name: "PROTOCOL",
-	default: config.PROTOCOL,
+	default: config.PROTOCOL.toString(),
 	message: "Which protocol should this server run on?",
 	choices: [
 		'http',
@@ -100,7 +97,7 @@ var questions = [{
 }, {
 	type: "input",
 	name: "HOST",
-	default: config.HOST,
+	default: config.HOST.toString(),
 	message: "Enter Host (do not add protocol:// or :port)",
 	when: function(answers) {
 		return answers.BUILD_ENVIRONMENT;
@@ -108,7 +105,7 @@ var questions = [{
 }, {
 	type: "input",
 	name: "PORT",
-	default: "",
+	default: config.PORT.toString(),
 	message: "Enter Port number (do not add colon(:)). Hit ENTER for no port.",
 	validate : function(answer) {
 	
@@ -153,6 +150,10 @@ inquirer.prompt(questions, function(a) {
 	config.PROTOCOL = a.PROTOCOL || config.PROTOCOL;
 	config.HOST = a.HOST || config.HOST;
 	config.PORT = a.PORT || config.PORT;
+	
+	//	Every server get a unique key for hashing.
+	//
+	config.SESSION_SECRET = uuid.v4();
 
 	prodPM2.apps[0].script = npmPackage.main;
 	prodPM2.apps[0].instances = config.NUM_CLUSTER_CORES;
@@ -162,11 +163,7 @@ inquirer.prompt(questions, function(a) {
 	//	Update /pm2_processes/prod.json,dev.json files, create a
 	//	bin/config.json file as modified above, and exit.
 	//
-	fs
-	.writeFileAsync(path.join(PM2Dir, 'prod.json'), JSON.stringify(prodPM2))
-	.then(fs.writeFileAsync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2)))
-	.then(fs.writeFileAsync('./bin/.config.json', JSON.stringify(config)))
-	.catch(function(err) {
-		throw new Error(err);
-	});
+	fs.writeFileSync(path.join(PM2Dir, 'prod.json'), JSON.stringify(prodPM2));
+	fs.writeFileSync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2));
+	fs.writeFileSync('./bin/.config.json', JSON.stringify(config));
 });

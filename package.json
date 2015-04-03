@@ -13,7 +13,7 @@
   "scripts": {
     "test": "mocha ./spec --require ./spec/helpers/chai.js --reporter spec",
     "config": "node bin/config.js",
-    "start": "node server.js"
+    "start": "npm run-script config; node ./server.js"
   },
   "author": "Sandro Pasquali <spasquali@gmail.com>",
   "license": "MIT",
