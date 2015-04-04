@@ -20,7 +20,7 @@ export STYLES_DIR=build/css
 export SERVER_ROUTES=./router/routes
 export WORKING_FOLDER=/.swanson
 export LOG_FILE=/.swanson/output.log
-export LEVEL_DATA_DIR=./data
+export LEVEL_DB=data/main.db
 
 #	This last group is exposed/changeable when you run configuration tool.
 #
@@ -34,4 +34,3 @@ export DEV_AUTO_RELOAD=yes
 #	value here has no influence on the final value.
 #
 export SESSION_SECRET=somesecretstring
-

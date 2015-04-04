@@ -61,13 +61,8 @@ try {
 
 //	Create folders for level data and PM2 process startup configs.
 //
-mkdirp.sync(config.LEVEL_DATA_DIR);
+mkdirp.sync(path.dirname(config.LEVEL_DB));
 mkdirp.sync(PM2Dir);
-
-//	Configure DB, models, etc.
-//
-var db = levelup(config.LEVEL_DATA_DIR);
-dulcimer.connect(config.LEVEL_DATA_DIR);
 
 //	The question/answer definitions
 //
@@ -143,7 +138,7 @@ var questions = [{
 	},
 	when: check('BUILD_ENVIRONMENT')
 }, {
-	type: "input",
+	type: "password",
 	name: "GITHUB_PASSWORD",
 	default: config.GITHUB_PASSWORD || "",
 	message: "Github password",
@@ -191,40 +186,43 @@ inquirer.prompt(questions, function(a) {
 	//	Every server get a unique key for hashing.
 	//
 	config.SESSION_SECRET = uuid.v4();
-
-	//	bcrypt Github password and store credentials in LevelDB
-	//	when in PRODUCTION environment
+	
+	//	Configure DB, models, etc, and update relevant config files.
 	//
-	if(a.BUILD_ENVIRONMENT) {
-
-		GithubCredentialsFactory = new dulcimer.Model({
-			username: "",
-			password: ""
-		}, {
-			name: 'github_credentials'
-		});
-		model = GithubCredentialsFactory.create({
-			username: a.GITHUB_USERNAME,
-			password: bcrypt.hashSync(a.GITHUB_PASSWORD, 8)
-		});
+	levelup(config.LEVEL_DB, function(err) {
+		dulcimer.connect(config.LEVEL_DB);
+	
+		//	bcrypt Github password and store credentials in LevelDB
+		//	when in PRODUCTION environment
+		//
+		if(a.BUILD_ENVIRONMENT) {
+	
+			GithubCredentialsFactory = new dulcimer.Model({
+				username: "",
+				password: ""
+			}, {
+				name: 'github_credentials'
+			});
+			model = GithubCredentialsFactory.create({
+				username: a.GITHUB_USERNAME,
+				password: bcrypt.hashSync(a.GITHUB_PASSWORD, 8)
+			});
+			
+			model.save(function(err) {
+				if(err) {
+					log.error(err);
+				}
+			});
+		}
 		
-		model.save(function(err) {
-			if(err) {
-				log.error(err);
-			}
-		});
-	}
-	
-	//	These JSON objects become PM2 start configs. See below.
-	//
-	prodPM2.apps[0].script = npmPackage.main;
-	prodPM2.apps[0].instances = config.NUM_CLUSTER_CORES;
-	devPM2.apps[0].script = npmPackage.main;
-	
-	//	Update /pm2_processes/prod.json,dev.json files, create a
-	//	bin/config.json file as modified above, and exit.
-	//
-	fs.writeFileSync(path.join(PM2Dir, 'prod.json'), JSON.stringify(prodPM2));
-	fs.writeFileSync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2));
-	fs.writeFileSync('./bin/.config.json', JSON.stringify(config));
+		//	These JSON objects become PM2 start configs. See below.
+		//
+		prodPM2.apps[0].script = npmPackage.main;
+		prodPM2.apps[0].instances = config.NUM_CLUSTER_CORES;
+		devPM2.apps[0].script = npmPackage.main;
+
+		fs.writeFileSync(path.join(PM2Dir, 'prod.json'), JSON.stringify(prodPM2));
+		fs.writeFileSync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2));
+		fs.writeFileSync('./bin/.config.json', JSON.stringify(config));
+	});
 });
