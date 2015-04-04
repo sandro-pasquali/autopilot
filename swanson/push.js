@@ -1,3 +1,4 @@
+var fs = require('fs');
 var path = require('path');
 var env = require('../env');
 var exec = require('child_process').exec;
