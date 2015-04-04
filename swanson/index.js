@@ -41,6 +41,10 @@ var swansonHandler = function(req, res) {
 		modified : []
 	};
 	
+	if(!req.body.commits) {
+		return;
+	}
+	
 	req.body.commits.forEach(function(obj) {
 		changes.removed = changes.removed.concat(obj.removed);
 		changes.modified = changes.modified.concat(obj.modified);
@@ -144,6 +148,9 @@ module.exports = function(app, server) {
 		if(err) {
 			throw new Error(err);
 		}
+		
+		//	Now ensure that github has a webhook for this repo
+		//
 		
 		//	Kill this process/server; pm2 is now running it.
 		//

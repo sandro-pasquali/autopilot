@@ -2,12 +2,14 @@
 
 var fs = require('fs');
 var path = require('path');
+var os = require('os');
 var inquirer = require("inquirer");
 var levelup = require('level');
 var bcrypt = require('bcrypt');
 var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
 var dulcimer = require('dulcimer');
+var github = require('octonode');
 
 var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
 
@@ -64,6 +66,15 @@ try {
 mkdirp.sync(path.dirname(config.LEVEL_DB));
 mkdirp.sync(PM2Dir);
 
+//	Determine the default IP, providing a default "URL" option, below.
+//	Note that this isn't perfectly accurate, nor meant to be. It provides
+//	a default "URL" in situations where routing is dynamic and it is
+//	better to target speicific ips rather than urls. Configure as is needed.
+//
+try {
+	config.URL = config.URL || os.networkInterfaces().eth0[0].address;
+} catch(e){};
+
 //	The question/answer definitions
 //
 var questions = [{
@@ -94,15 +105,25 @@ var questions = [{
 	when: check('BUILD_ENVIRONMENT')
 }, {
 	type: "input",
+	name: "URL",
+	default: config.URL,
+	message: "Public URL (No host or port, ie. www.example.com)?",
+	validate: function(answer) {
+		//	TODO: ensure no trailing slash
+		return true;
+	},
+	when: check('BUILD_ENVIRONMENT')
+}, {
+	type: "input",
 	name: "HOST",
 	default: config.HOST.toString(),
-	message: "Enter Host (do not add protocol:// or :port)",
+	message: "Host (do not add protocol:// or :port)",
 	when: check('BUILD_ENVIRONMENT')
 }, {
 	type: "input",
 	name: "PORT",
 	default: config.PORT.toString(),
-	message: "Enter Port number (do not add colon(:))",
+	message: "Port number (do not add colon(:)). Hit ENTER for no port",
 	validate : function(answer) {
 	
 		var errstr = "Invalid port number. 0 < port <= 65535, or ENTER for no port";
@@ -124,35 +145,6 @@ var questions = [{
 		return true;
 	},
 	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "input",
-	name: "GITHUB_USERNAME",
-	default: config.GITHUB_USERNAME || "",
-	message: "Github username",
-	validate: function(answer) {
-		if(!/^\w[\w-]+$/i.test(answer)) {
-			return "Username may only contain alphanumeric characters or dashes and cannot begin with a dash";
-		}
-		
-		return true;
-	},
-	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "password",
-	name: "GITHUB_PASSWORD",
-	default: config.GITHUB_PASSWORD || "",
-	message: "Github password",
-	validate: function(answer) {
-		if(!/^(?=.*\d)[^\s]{7,}$/i.test(answer)) {
-			return "7 characters and at least one number, no spaces";
-		}
-		
-		return true
-	},
-	when: check('BUILD_ENVIRONMENT')
-	
-	//	The following are exclusively DEVELOPMENT questions
-	
 }, {
 	type: "confirm",
 	name: "DEV_AUTO_RELOAD",
@@ -176,43 +168,29 @@ inquirer.prompt(questions, function(a) {
 
 	var model;
 	var GithubCredentialsFactory;
+	var client;
+	var repo;
 
 	config.BUILD_ENVIRONMENT = a.BUILD_ENVIRONMENT ? "production" : "development";
 	config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
 	config.PROTOCOL = a.PROTOCOL || config.PROTOCOL;
+	config.URL = a.URL;
 	config.HOST = a.HOST || config.HOST;
 	config.PORT = a.PORT || config.PORT;
 	
 	//	Every server get a unique key for hashing.
 	//
 	config.SESSION_SECRET = uuid.v4();
-	
+
 	//	Configure DB, models, etc, and update relevant config files.
 	//
 	levelup(config.LEVEL_DB, function(err) {
 		dulcimer.connect(config.LEVEL_DB);
 	
-		//	bcrypt Github password and store credentials in LevelDB
-		//	when in PRODUCTION environment
-		//
 		if(a.BUILD_ENVIRONMENT) {
 	
-			GithubCredentialsFactory = new dulcimer.Model({
-				username: "",
-				password: ""
-			}, {
-				name: 'github_credentials'
-			});
-			model = GithubCredentialsFactory.create({
-				username: a.GITHUB_USERNAME,
-				password: bcrypt.hashSync(a.GITHUB_PASSWORD, 8)
-			});
-			
-			model.save(function(err) {
-				if(err) {
-					log.error(err);
-				}
-			});
+			//	Eventually create an admin account, mainly for accessing
+			//	admin interfaces, using dulcimer, leveldb, etc.
 		}
 		
 		//	These JSON objects become PM2 start configs. See below.

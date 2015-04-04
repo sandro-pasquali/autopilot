@@ -26,6 +26,7 @@ export LEVEL_DB=data/main.db
 #
 export BUILD_ENVIRONMENT=development
 export PROTOCOL=http
+export URL=
 export HOST=127.0.0.1
 export PORT=2122
 export NUM_CLUSTER_CORES=0
