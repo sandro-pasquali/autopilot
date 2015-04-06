@@ -31,6 +31,7 @@
     "chai": "^1.10.0",
     "coffee-script": "^1.9.0",
     "del": "^1.1.1",
+    "dulcimer": "^2.8.4",
     "express": "^4.12.2",
     "express-session": "^1.10.4",
     "glob": "^5.0.3",
