@@ -17,7 +17,8 @@
   "scripts": {
     "test": "mocha ./spec --require ./spec/helpers/chai.js --reporter spec",
     "config": "node bin/config.js",
-    "start": "npm run config; node ./server.js"
+    "server": "node ./server.js",
+    "start": "npm run config; gulp init; npm run server"
   },
   "author": "Sandro Pasquali <spasquali@gmail.com>",
   "license": "MIT",

@@ -12,7 +12,7 @@ export SOURCE_STYLES_DIR=source/styles
 
 export BUILD_DIR=build
 export VIEWS_DIR=build/views
-export TEMPLATES_DIR=build/compiled_templates
+export TEMPLATES_DIR=build/js/compiled_templates
 export PARTIALS_DIR=build/partials
 export SCRIPTS_DIR=build/js
 export STYLES_DIR=build/css

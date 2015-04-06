@@ -25,6 +25,24 @@ var reload = browserSync.reload;
 
 var env = require('./env');
 
+//	Add all the tasks you want to have run listed here.
+//	@see	#default, #init
+//
+var linkedTasks = [
+	'scaffold', 
+	'lint-coffee',
+	'coffee',
+	'lint-js',
+	'js',
+	'scss',
+	'concat-css',
+	'templates',
+	'partials',
+	'browserify',
+	'browser-sync',
+	'views'
+];
+
 del.sync(env.BUILD_DIR);
 
 gulp.task('scaffold', function() {
@@ -174,19 +192,18 @@ gulp.task('browser-sync', ['browserify'], function(cb) {
 	return gulp.watch(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'), ['views']);
 });
 
-gulp.task('default', [
-	'scaffold', 
-	'lint-coffee',
-	'coffee',
-	'lint-js',
-	'js',
-	'scss',
-	'concat-css',
-	'templates',
-	'partials',
-	'browserify',
-	'browser-sync',
-	'views'
-], function(cb) {
+//	This is what runs when you execute generic `gulp`
+//
+gulp.task('default', linkedTasks, function(cb) {
+	cb();
+});
+
+//	This is a non-browsersync run. It is intended for the initial
+//	build of this repo, post-initial-clone. You can also use it if
+//	you don't want browser-sync...
+//
+gulp.task('init', linkedTasks.filter(function(i) { 
+	return i !== 'browser-sync' }
+), function(cb) {
 	cb();
 });
