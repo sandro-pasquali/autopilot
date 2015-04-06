@@ -152,10 +152,15 @@ var questions = [{
 	message: "Auto-reload on /source changes (reload browser)?",
 	when: function(answers) {
 		return !check('BUILD_ENVIRONMENT')(answers);
+	}	
+}, {
+	type: "confirm",
+	name: "DEV_OPEN_TUNNEL",
+	default: config.DEV_OPEN_TUNNEL,
+	message: "Open local tunnel?",
+	when: function(answers) {
+		return !check('BUILD_ENVIRONMENT')(answers);
 	}
-	
-	//	The following are in ALL build environments.	
-	
 }];
 
 function check(p) {
@@ -174,6 +179,8 @@ inquirer.prompt(questions, function(a) {
 	config.BUILD_ENVIRONMENT = a.BUILD_ENVIRONMENT ? "production" : "development";
 	config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
 	config.PROTOCOL = a.PROTOCOL || config.PROTOCOL;
+	config.DEV_AUTO_RELOAD = a.DEV_AUTO_RELOAD ? 'yes' : 'no';
+	config.DEV_OPEN_TUNNEL = a.DEV_OPEN_TUNNEL ? 'yes' : 'no';
 	config.URL = a.URL;
 	config.HOST = a.HOST || config.HOST;
 	config.PORT = a.PORT || config.PORT;

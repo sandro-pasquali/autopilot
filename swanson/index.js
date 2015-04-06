@@ -94,8 +94,9 @@ module.exports = function(app, server) {
 		throw new Error("No BUILD_ENVIRONMENT specified. Use either `npm run-script dev` or `npm run-script prod`");
 	}
 	
-	//	When in development run a single PM2 instance that restarts the server
-	//	whenever a change happens in the build folder (post-gulp)
+	//	When in development tell PM2 to take over this process. Once that
+	//	request is made kill the original server process (process.exit). When
+	//	PM2 starts the process again, start the server listening.
 	//
 	if(env.BUILD_ENVIRONMENT !== 'production') {
 		pm2.connect(function(err) {
@@ -108,17 +109,8 @@ module.exports = function(app, server) {
 						process.exit(0);
 					});
 				} else {
-					//	The route called by gulp when it has completed.
-					//	Note that only DEVELOPMENT servers have this built in.
-					//
-					app.get('/gulp/restart', function(req, res) {
-						exec('pm2 restart autopilot-dev', function(err) {
-							if(err) {
-								return log.error(err);
-							}
-							log.info('DEV SERVER gulp-restart');
-						});
-					});
+					//	Start listening once PM2 re-starts this server.
+					//	
 					listen(app,server);
 				}
 			});

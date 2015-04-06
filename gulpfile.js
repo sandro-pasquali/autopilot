@@ -4,6 +4,7 @@ var path 		= require('path');
 var mkdirp 		= require('mkdirp');
 var del			= require('del');
 var request 	= require('request');
+var browserSync = require('browser-sync');
 var source 		= require('vinyl-source-stream');
 var buffer 		= require('vinyl-buffer');
 var gulp 		= require('gulp');
@@ -19,6 +20,8 @@ var sass 		= require('gulp-sass');
 var wrap 		= require('gulp-wrap');
 var uglify 		= require('gulp-uglify');
 var minifyHTML 	= require('gulp-minify-html');
+
+var reload = browserSync.reload;
 
 var env = require('./env');
 
@@ -137,11 +140,38 @@ gulp.task('browserify', ['coffee', 'templates', 'views'], function() {
 //	All .html files in source folder
 //
 gulp.task('views', ['scaffold'], function() {
-	return gulp.src(path.join(env.SOURCE_VIEWS_DIR, '*.html'))
+	return gulp.src(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'))
 		.pipe(minifyHTML({
 			empty: true
 		}))
 		.pipe(gulp.dest(env.VIEWS_DIR))
+		.pipe(reload({
+			stream: true
+		}));
+});
+
+gulp.task('browser-sync', ['browserify'], function(cb) {
+
+	if(env.DEV_AUTO_RELOAD !== 'yes') {
+		return cb();
+	}
+
+	browserSync({
+		notify: false,
+		injectChanges: false,
+		ghostMode: {
+			clicks: true,
+			forms: true,
+			scroll: true
+		},
+		//	Attempt to use the URL "http://my-private-site.localtunnel.me"
+		//
+		tunnel: env.DEV_OPEN_TUNNEL === 'yes' ? new Date().getTime().toString(36) : false,
+		browser: "google chrome",
+		scrollThrottle: 100,
+		proxy: env.HOST + (!!env.PORT ? ':' + env.PORT : '')
+	});
+	return gulp.watch(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'), ['views']);
 });
 
 gulp.task('default', [
@@ -155,16 +185,8 @@ gulp.task('default', [
 	'templates',
 	'partials',
 	'browserify',
+	'browser-sync',
 	'views'
 ], function(cb) {
-	//	When complete, broadcast to a route that will ONLY be picked up if
-	//	a DEVELOPMENT server is running. That server will restart. Note that
-	//	it is possible to get an error if no DEVELOPMENT server is running...
-	//	but you should not be running gulp in a PRODUCTION environment.
-	//
-	//	@see	/swanson/index.js
-	//
-	request(env.PROTOCOL + '://' + env.HOST + ':' + env.PORT + '/gulp/restart', function(err, req, data) {
-		cb();
-	});
+	cb();
 });
