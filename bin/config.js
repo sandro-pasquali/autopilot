@@ -10,29 +10,6 @@ var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
 var dulcimer = require('dulcimer');
 
-var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
-
-var npmPackage = require('../package.json');
-
-//	Will be adding #instances and #script. See below.
-//
-var prodPM2 = {
-	"apps": [{
-		"name": "autopilot-server",
-		"cwd": "./",
-		"exec_mode": "cluster_mode"
-	}]
-};
-
-//	Will be adding #script. See below.
-//
-var devPM2 = {
-	"apps": [{ 
-		"name": "autopilot-dev",
-		"cwd": "./"
-	}]
-};
-
 //	Grab config data. Either a previous build, or initially from defaults.
 //	Configuration is performed on every `npm start`.
 //
@@ -60,11 +37,6 @@ try {
 	}, {});
 }
 
-//	Create folders for level data and PM2 process startup configs.
-//
-mkdirp.sync(path.dirname(config.LEVEL_DB));
-mkdirp.sync(PM2Dir);
-
 //	Determine the default IP, providing a default "URL" option, below.
 //	Note that this isn't perfectly accurate, nor meant to be. It provides
 //	a default "URL" in situations where routing is dynamic and it is
@@ -74,138 +46,95 @@ try {
 	config.URL = config.URL || os.networkInterfaces().eth0[0].address;
 } catch(e){};
 
+var q_production = require('./questions/production_main.js')(config);
+var q_development = require('./questions/development_main.js')(config);
+
+var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
+
+var npmPackage = require('../package.json');
+
+//	Will be adding #instances and #script. See below.
+//
+var prodPM2 = {
+	"apps": [{
+		"name": "autopilot-server",
+		"cwd": "./",
+		"exec_mode": "cluster_mode"
+	}]
+};
+
+//	Will be adding #script. See below.
+//
+var devPM2 = {
+	"apps": [{ 
+		"name": "autopilot-dev",
+		"cwd": "./"
+	}]
+};
+
+//	Create folders for level data and PM2 process startup configs.
+//
+mkdirp.sync(path.dirname(config.LEVEL_DB));
+mkdirp.sync(PM2Dir);
+
+
 //	The question/answer definitions
+//	The first question sets build environment true or false,
+//	from which fork we load other question sets.
 //
 var questions = [{
 	type: "confirm",
 	name: "BUILD_ENVIRONMENT",
 	default: false,
 	message: "Will this be a PRODUCTION server?"
-}, {
-	//	Get # of cores that PM2 will cluster
-	//
-	type: "input",
-	name: "NUM_CLUSTER_CORES",
-	default: config.NUM_CLUSTER_CORES.toString(),
-	message: "How many cores will the server cluster use (0 = all available)?",
-	validate: function(answer) {
-		return /^\d{1,2}$/.test(answer) ? true : "Please enter only numbers, max of 99";
-	},
-	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "list",
-	name: "PROTOCOL",
-	default: config.PROTOCOL.toString(),
-	message: "Which protocol should this server run on?",
-	choices: [
-		'http',
-		'https'
-	],
-	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "input",
-	name: "URL",
-	default: config.URL,
-	message: "Public URL (No host or port, ie. www.example.com)?",
-	validate: function(answer) {
-		//	TODO: ensure no trailing slash
-		return true;
-	},
-	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "input",
-	name: "HOST",
-	default: config.HOST.toString(),
-	message: "Host (do not add protocol:// or :port)",
-	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "input",
-	name: "PORT",
-	default: config.PORT.toString(),
-	message: "Port number (do not add colon(:)). Hit ENTER for no port",
-	validate : function(answer) {
-	
-		var errstr = "Invalid port number. 0 < port <= 65535, or ENTER for no port";
-		
-		if(answer === "") {
-			return true;
-		}
-		
-		if(!/^\d{1,5}$/.test(answer)) {
-			return errstr;
-		}
-		
-		answer = +answer;
-		
-		if((answer < 1) || (answer > 65535)) {
-			return errstr;
-		}
-		
-		return true;
-	},
-	when: check('BUILD_ENVIRONMENT')
-}, {
-	type: "confirm",
-	name: "DEV_AUTO_RELOAD",
-	default: config.DEV_AUTO_RELOAD,
-	message: "Auto-reload on /source changes (reload browser)?",
-	when: function(answers) {
-		return !check('BUILD_ENVIRONMENT')(answers);
-	}	
-}, {
-	type: "confirm",
-	name: "DEV_OPEN_TUNNEL",
-	default: config.DEV_OPEN_TUNNEL,
-	message: "Open local tunnel?",
-	when: function(answers) {
-		return !check('BUILD_ENVIRONMENT')(answers);
-	}
 }];
 
-function check(p) {
-	return function(answers) {
-		return answers[p];
-	}
-}
+inquirer.prompt(questions, function(bev) {
 
-inquirer.prompt(questions, function(a) {
+	bev = bev.BUILD_ENVIRONMENT;
 
-	var model;
-	var client;
-	var repo;
+	inquirer
+	.prompt(bev	? q_production : q_development, function(a) {
 
-	config.BUILD_ENVIRONMENT = a.BUILD_ENVIRONMENT ? "production" : "development";
-	config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
-	config.PROTOCOL = a.PROTOCOL || config.PROTOCOL;
-	config.DEV_AUTO_RELOAD = a.DEV_AUTO_RELOAD ? 'yes' : 'no';
-	config.DEV_OPEN_TUNNEL = a.DEV_OPEN_TUNNEL ? 'yes' : 'no';
-	config.URL = a.URL;
-	config.HOST = a.HOST || config.HOST;
-	config.PORT = a.PORT || config.PORT;
+		var model;
+		var client;
+		var repo;
 	
-	//	Every server get a unique key for hashing.
-	//
-	config.SESSION_SECRET = uuid.v4();
-
-	//	Configure DB, models, etc, and update relevant config files.
-	//
-	levelup(config.LEVEL_DB, function(err) {
-		dulcimer.connect(config.LEVEL_DB);
-	
-		if(a.BUILD_ENVIRONMENT) {
-	
-			//	Eventually create an admin account, mainly for accessing
-			//	admin interfaces, using dulcimer, leveldb, etc.
-		}
+		config.BUILD_ENVIRONMENT = bev ? "production" : "development";
+		config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
+		config.PROTOCOL = a.PROTOCOL || config.PROTOCOL;
+		config.DEV_AUTO_RELOAD = a.DEV_AUTO_RELOAD ? 'yes' : 'no';
+		config.DEV_OPEN_TUNNEL = a.DEV_OPEN_TUNNEL ? 'yes' : 'no';
+		config.URL = a.URL;
+		config.HOST = a.HOST || config.HOST;
+		config.PORT = a.PORT || config.PORT;
+		config.LOGGLY_SUBDOMAIN = a.LOGGLY_SUBDOMAIN;
+		config.LOGGLY_TOKEN = a.LOGGLY_TOKEN;
 		
-		//	These JSON objects become PM2 start configs. See below.
+		//	Every server get a unique key for hashing.
 		//
-		prodPM2.apps[0].script = npmPackage.main;
-		prodPM2.apps[0].instances = config.NUM_CLUSTER_CORES;
-		devPM2.apps[0].script = npmPackage.main;
-
-		fs.writeFileSync(path.join(PM2Dir, 'prod.json'), JSON.stringify(prodPM2));
-		fs.writeFileSync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2));
-		fs.writeFileSync('./bin/.config.json', JSON.stringify(config));
+		config.SESSION_SECRET = uuid.v4();
+	
+		//	Configure DB, models, etc, and update relevant config files.
+		//
+		levelup(config.LEVEL_DB, function(err) {
+			dulcimer.connect(config.LEVEL_DB);
+		
+			if(bev) {
+		
+				//	Eventually create an admin account, mainly for accessing
+				//	admin interfaces, using dulcimer, leveldb, etc.
+			}
+			
+			//	These JSON objects become PM2 start configs. See below.
+			//
+			prodPM2.apps[0].script = npmPackage.main;
+			prodPM2.apps[0].instances = config.NUM_CLUSTER_CORES;
+			devPM2.apps[0].script = npmPackage.main;
+	
+			fs.writeFileSync(path.join(PM2Dir, 'prod.json'), JSON.stringify(prodPM2));
+			fs.writeFileSync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2));
+			fs.writeFileSync('./bin/.config.json', JSON.stringify(config));
+		});
 	});
 });

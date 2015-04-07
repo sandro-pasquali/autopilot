@@ -25,13 +25,18 @@ export LEVEL_DB=data/main.db
 #
 export WORKING_DIRECTORY=swanson
 
+#	3rd Party apps (cloud APIs)
+#
+export LOGGLY_SUBDOMAIN=
+export LOGGLY_TOKEN=
+
 #	This last group is exposed/changeable when you run configuration tool.
 #
 export BUILD_ENVIRONMENT=development
 export PROTOCOL=http
 export URL=
 export HOST=127.0.0.1
-export PORT=2122
+export PORT=
 export NUM_CLUSTER_CORES=0
 export DEV_AUTO_RELOAD=yes
 export DEV_OPEN_TUNNEL=yes

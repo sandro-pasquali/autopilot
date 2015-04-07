@@ -6,7 +6,6 @@ var exec = require('child_process').exec;
 var fork = require('child_process').fork;
 var pm2 = require('pm2');
 var uuid = require('node-uuid');
-var mkdirp = require('mkdirp');
 var del = require('del');
 var bunyan = require('bunyan');
 var env = require('../env');
@@ -49,8 +48,6 @@ var swansonHandler = function(req, res) {
 		changes.modified = changes.modified.concat(obj.modified);
 		changes.added = changes.added.concat(obj.added);
 	});
-	
-	return res.send('ok');
 	
 	if(req.get('X-Github-Event') == "push") {
 		fork(swansonPath + '/push.js', [

@@ -31,11 +31,15 @@ var cloneDir = args[0];
 var commits = JSON.parse(args[3]);
 
 function cloneRepo(cb) {
-	exec('git clone ' + cloneUrl + ' ' + cloneDir, cb);
+	var command = 'git clone ' + cloneUrl + ' ' + cloneDir;
+	log.info('*CLONING: ' + command);
+	exec(command, cb);
 }
 
 function enterAndBuild(cb) {
-	exec('cd ' + cloneDir + ';npm i; gulp init;npm test', cb);
+	var command = 'cd ' + cloneDir + ';npm i; gulp init;npm test';
+	log.info('*BUILDING: ' + command);
+	exec(command, cb);
 }
 
 //	Run through the #cloneDir and move all files/folders that have changed
@@ -78,7 +82,7 @@ function move(cb) {
 	
 	command = command.join(';');
 
-	log.info(command);
+	log.info('*MOVING: ' + command);
 
 	exec(command, cb);
 }
@@ -90,13 +94,18 @@ function move(cb) {
 //	generated config file will never be copied into production.
 //
 function prepareClone(cb) {
-	fs.writeFile(cloneDir + '/bin/.config.json', JSON.stringify(env), cb);
+	var command = cloneDir + '/bin/.config.json';
+	fs.writeFile(command, JSON.stringify(env), cb);
+	log.info("*WRITING CONFIG: " + command);
 }
 
-function cleanAndRestart() {
-	exec('rm -rf ' + cloneDir + ';pm2 gracefulReload autopilot-server');
-	log.info("WEBHOOK RESTART " + new Date().getTime());
+function cleanAndRestart(cb) {
+	var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload autopilot-server';
+	exec(command, cb);
+	log.info("*WEBHOOK RESTART: " + command);
 }
+
+log.info("*WEBHOOK RECEIVED");
 
 //	The action -- clone, build, move, restart
 //
@@ -118,7 +127,11 @@ cloneRepo(function(err) {
 				if(err) {
 					return log.error('Move error: ' + err);
 				}
-				cleanAndRestart();
+				cleanAndRestart(function(err) {
+					if(err) {
+						return log.error('Clean error: ' + err);
+					}
+				});
 			});
 		});
 	});
