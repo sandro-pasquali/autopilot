@@ -35,7 +35,7 @@ function cloneRepo(cb) {
 }
 
 function enterAndBuild(cb) {
-	exec('cd ' + cloneDir + ';npm i; gulp;npm test', cb);
+	exec('cd ' + cloneDir + ';npm i; gulp init;npm test', cb);
 }
 
 //	Run through the #cloneDir and move all files/folders that have changed
