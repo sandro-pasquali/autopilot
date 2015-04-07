@@ -18,8 +18,7 @@ export SCRIPTS_DIR=build/js
 export STYLES_DIR=build/css
 
 export SERVER_ROUTES=./router/routes
-export WORKING_FOLDER=/.swanson
-export LOG_FILE=/.swanson/output.log
+export LOG_FILE=swanson/output.log
 export LEVEL_DB=data/main.db
 
 #	This last group is exposed/changeable when you run configuration tool.

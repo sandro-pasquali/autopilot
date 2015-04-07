@@ -1,4 +1,5 @@
 var fs = require('fs');
+var os = require('os');
 var path = require('path');
 var util = require('util');
 var exec = require('child_process').exec;
@@ -10,7 +11,9 @@ var del = require('del');
 var bunyan = require('bunyan');
 var env = require('../env');
 
-mkdirp.sync(env.WORKING_FOLDER);
+var tmpDir = os.tmpdir();
+
+console.log(tmpDir);
 
 var log = bunyan.createLogger({
 	name: 'autopilot',
@@ -55,7 +58,7 @@ var swansonHandler = function(req, res) {
 		fork(swansonPath + '/push.js', [
 			//	The folder into which the repo is cloned
 			//
-			path.join(env.WORKING_FOLDER, req.body.after),
+			path.join(tmpDir, req.body.after),
 			//	The Github url for the repo
 			//
 			req.body.repository.clone_url,

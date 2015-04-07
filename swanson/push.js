@@ -24,21 +24,21 @@ var sourceDir = args[2];
 
 //	The directory in which test clones are pulled and tested
 //
-var tempDir = args[0];
+var cloneDir = args[0];
 
 //	What was removed, modified or added
 //
 var commits = JSON.parse(args[3]);
 
 function cloneRepo(cb) {
-	exec('git clone ' + cloneUrl + ' ' + tempDir, cb);
+	exec('git clone ' + cloneUrl + ' ' + cloneDir, cb);
 }
 
 function enterAndBuild(cb) {
-	exec('cd ' + tempDir + ';npm i; gulp;npm test', cb);
+	exec('cd ' + cloneDir + ';npm i; gulp;npm test', cb);
 }
 
-//	Run through the #tempDir and move all files/folders that have changed
+//	Run through the #cloneDir and move all files/folders that have changed
 //
 function move(cb) {
 
@@ -63,7 +63,7 @@ function move(cb) {
 	adding.forEach(function(f) {
 		addCommands.push(
 			'rm -rf ' + sourceDir + '/' + f,
-			'mv ' + tempDir + '/' + f + ' ' + sourceDir + '/' + f
+			'mv ' + cloneDir + '/' + f + ' ' + sourceDir + '/' + f
 		);
 	});
 	
@@ -74,7 +74,7 @@ function move(cb) {
 	
 	//	We always move the build folder
 	//
-	command.push('rm -rf ' + sourceDir + '/' + env.BUILD_DIR + '; mv ' + tempDir + '/' + env.BUILD_DIR + ' ' + sourceDir + '/' + env.BUILD_DIR);
+	command.push('rm -rf ' + sourceDir + '/' + env.BUILD_DIR + '; mv ' + cloneDir + '/' + env.BUILD_DIR + ' ' + sourceDir + '/' + env.BUILD_DIR);
 	
 	command = command.join(';');
 
@@ -90,11 +90,11 @@ function move(cb) {
 //	generated config file will never be copied into production.
 //
 function prepareClone(cb) {
-	fs.writeFile(tempDir + '/bin/.config.json', JSON.stringify(env), cb);
+	fs.writeFile(cloneDir + '/bin/.config.json', JSON.stringify(env), cb);
 }
 
 function cleanAndRestart() {
-	exec('rm -rf ' + tempDir + ';pm2 gracefulReload autopilot-server');
+	exec('rm -rf ' + cloneDir + ';pm2 gracefulReload autopilot-server');
 	log.info("WEBHOOK RESTART " + new Date().getTime());
 }
 
