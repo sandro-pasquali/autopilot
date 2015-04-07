@@ -11,10 +11,6 @@ var del = require('del');
 var bunyan = require('bunyan');
 var env = require('../env');
 
-var tmpDir = os.tmpdir();
-
-console.log(tmpDir);
-
 var log = bunyan.createLogger({
 	name: 'autopilot',
 	streams: [{
@@ -54,11 +50,13 @@ var swansonHandler = function(req, res) {
 		changes.added = changes.added.concat(obj.added);
 	});
 	
+	return res.send('ok');
+	
 	if(req.get('X-Github-Event') == "push") {
 		fork(swansonPath + '/push.js', [
 			//	The folder into which the repo is cloned
 			//
-			path.join(tmpDir, req.body.after),
+			path.join(env.WORKING_DIRECTORY, req.body.after),
 			//	The Github url for the repo
 			//
 			req.body.repository.clone_url,

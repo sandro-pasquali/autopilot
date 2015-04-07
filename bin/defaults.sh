@@ -21,6 +21,10 @@ export SERVER_ROUTES=./router/routes
 export LOG_FILE=swanson/output.log
 export LEVEL_DB=data/main.db
 
+#	Where the cloning and other testing of repos happens
+#
+export WORKING_DIRECTORY=swanson
+
 #	This last group is exposed/changeable when you run configuration tool.
 #
 export BUILD_ENVIRONMENT=development
