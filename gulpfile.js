@@ -15,15 +15,36 @@ var changed 	= require('gulp-changed');
 var concat 		= require('gulp-concat');
 var handlebars 	= require('gulp-handlebars');
 var jshint 		= require('gulp-jshint');
+var debug 		= require('gulp-debug');
 var browserify 	= require('browserify');
 var sass 		= require('gulp-sass');
 var wrap 		= require('gulp-wrap');
 var uglify 		= require('gulp-uglify');
+var notify 		= require("gulp-notify");
+var plumber 	= require('gulp-plumber');
 var minifyHTML 	= require('gulp-minify-html');
+
+var env = require('./env');
 
 var reload = browserSync.reload;
 
-var env = require('./env');
+//	Override gulp#src and install a (safe) error handling pipeline, with
+//	growl-style reporting.
+//
+var _gulpsrc = gulp.src;
+gulp.src = function() {
+	return _gulpsrc.apply(gulp, arguments)
+	.pipe(plumber({
+		errorHandler: function(err) {
+			notify.onError({
+				title:    "Gulp Error",
+				message:  "Error: <%= error.message %>",
+				sound:    "Bottle"
+			})(err);
+			this.emit('end');
+		}
+	}));
+};
 
 //	Add all the tasks you want to have run listed here.
 //	@see	#default, #init
@@ -67,6 +88,9 @@ gulp.task('scaffold', function() {
 gulp.task('lint-js', ['scaffold'], function() {
 	return gulp.src(path.join(env.SOURCE_SCRIPTS_DIR, '**/*.js'))
   		.pipe(changed(env.SOURCE_SCRIPTS_DIR))
+		.pipe(debug({
+			title: 'linting js:'
+		}))
 		.pipe(jshint())
 		.pipe(jshint.reporter('default'));
 });
@@ -84,6 +108,9 @@ gulp.task('js', ['lint-js'], function() {
 gulp.task('lint-coffee', ['scaffold'], function() {
 	return gulp.src(path.join(env.SOURCE_SCRIPTS_DIR, '**/*.coffee'))
   		.pipe(changed(env.SOURCE_SCRIPTS_DIR))
+		.pipe(debug({
+			title: 'linting coffee:'
+		}))
 		.pipe(coffeelint('./coffeelint.json'))
 		.pipe(coffeelint.reporter('default'))
 });
@@ -95,6 +122,9 @@ gulp.task('coffee', ['lint-coffee'], function() {
   		.pipe(changed(env.SCRIPTS_DIR, {
   			extension: '.js'
   		}))
+		.pipe(debug({
+			title: 'compiling coffee:'
+		}))
   		.pipe(sourcemaps.init())
     	.pipe(coffee({
     		bare: true
@@ -111,6 +141,9 @@ gulp.task('scss', function() {
   		.pipe(changed(env.SOURCE_STYLES_DIR, {
   			extension: '.css'
   		}))
+		.pipe(debug({
+			title: 'compiling Sass:'
+		}))
         .pipe(sass())
         .pipe(gulp.dest(env.SOURCE_STYLES_DIR));
 });
@@ -119,30 +152,45 @@ gulp.task('scss', function() {
 //
 gulp.task('concat-css', ['scss'], function() {
     return gulp.src(path.join(env.SOURCE_STYLES_DIR, '**/*.css'))
+		.pipe(debug({
+			title: 'css bundle:'
+		}))
         .pipe(concat('app.css'))
-        .pipe(gulp.dest(env.STYLES_DIR));
+        .pipe(gulp.dest(env.STYLES_DIR))
+		.pipe(reload({
+			stream: true
+		}));
 });
 
 gulp.task('templates', function () {  
 	return gulp.src(path.join(env.SOURCE_TEMPLATES_DIR, '/**/*.hbs'))
+		.pipe(debug({
+			title: 'compiling templates:'
+		}))
   		.pipe(changed(env.TEMPLATES_DIR, {
   			extension: '.js'
   		}))
 		.pipe(handlebars())
 		.pipe(wrap('var Handlebars = require("handlebars/runtime")["default"];module.exports = Handlebars.template(<%= contents %>);'))
-		.pipe(gulp.dest(env.TEMPLATES_DIR));
+		.pipe(gulp.dest(env.TEMPLATES_DIR))
+		.pipe(reload({
+			stream: true
+		}));
 });
 
-gulp.task('partials', function () {  
+gulp.task('partials', function() {  
 	return gulp.src(path.join(env.SOURCE_PARTIALS_DIR, '/**/*.html'))
   		.pipe(changed(env.PARTIALS_DIR))
-		.pipe(gulp.dest(env.PARTIALS_DIR));
+		.pipe(gulp.dest(env.PARTIALS_DIR))
+		.pipe(reload({
+			stream: true
+		}));
 });
 
 // Fetch our main app code and browserify it
 // This bundle will be loaded by views, such as index.html
 //
-gulp.task('browserify', ['coffee', 'templates', 'views'], function() {
+gulp.task('browserify', ['coffee', 'js', 'templates'], function() {
 	return browserify('./' + env.SCRIPTS_DIR + '/app.js')
 		.bundle()
 		// Converts browserify out to streaming vinyl file object 
@@ -152,13 +200,19 @@ gulp.task('browserify', ['coffee', 'templates', 'views'], function() {
 		//
 		.pipe(buffer()) 
 		.pipe(uglify()) 
-		.pipe(gulp.dest(env.SCRIPTS_DIR));
+		.pipe(gulp.dest(env.SCRIPTS_DIR))
+		.pipe(reload({
+			stream: true
+		}));
 });
 
 //	All .html files in source folder
 //
 gulp.task('views', ['scaffold'], function() {
 	return gulp.src(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'))
+		.pipe(debug({
+			title: 'building views:'
+		}))
 		.pipe(minifyHTML({
 			empty: true
 		}))
@@ -184,12 +238,19 @@ gulp.task('browser-sync', ['browserify'], function(cb) {
 		},
 		//	Attempt to use the URL "http://my-private-site.localtunnel.me"
 		//
-		tunnel: env.DEV_OPEN_TUNNEL === 'yes' ? new Date().getTime().toString(36) : false,
+		// tunnel: env.DEV_OPEN_TUNNEL === 'yes' ? new Date().getTime().toString(36) : false,
 		browser: "google chrome",
 		scrollThrottle: 100,
 		proxy: env.HOST + (!!env.PORT ? ':' + env.PORT : '')
 	});
-	return gulp.watch(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'), ['views']);
+	
+	gulp.watch(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'), ['views']);
+	gulp.watch(path.join(env.SOURCE_PARTIALS_DIR, '/**/*.html'), ['partials']);
+	gulp.watch(path.join(env.SOURCE_STYLES_DIR, '**/*'), ['concat-css']);
+	gulp.watch(path.join(env.SOURCE_TEMPLATES_DIR, '/**/*.hbs'), ['browserify']);
+	gulp.watch(path.join(env.SOURCE_SCRIPTS_DIR, '**/*'), ['browserify']);
+	
+	cb();
 });
 
 //	This is what runs when you execute generic `gulp`
@@ -203,7 +264,7 @@ gulp.task('default', linkedTasks, function(cb) {
 //	you don't want browser-sync...
 //
 gulp.task('init', linkedTasks.filter(function(i) { 
-	return i !== 'browser-sync' }
-), function(cb) {
+	return i !== 'browser-sync'; 
+}), function(cb) {
 	cb();
 });

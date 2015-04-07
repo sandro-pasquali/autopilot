@@ -9,7 +9,6 @@ var bcrypt = require('bcrypt');
 var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
 var dulcimer = require('dulcimer');
-var github = require('octonode');
 
 var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
 
@@ -172,7 +171,6 @@ function check(p) {
 inquirer.prompt(questions, function(a) {
 
 	var model;
-	var GithubCredentialsFactory;
 	var client;
 	var repo;
 
