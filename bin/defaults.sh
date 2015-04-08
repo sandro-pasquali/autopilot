@@ -25,11 +25,6 @@ export LEVEL_DB=data/main.db
 #
 export WORKING_DIRECTORY=swanson
 
-#	3rd Party apps (cloud APIs)
-#
-export LOGGLY_SUBDOMAIN=
-export LOGGLY_TOKEN=
-
 #	This last group is exposed/changeable when you run configuration tool.
 #
 export BUILD_ENVIRONMENT=development

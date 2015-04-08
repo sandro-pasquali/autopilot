@@ -3,6 +3,7 @@
 var fs = require('fs');
 var path = require('path');
 var os = require('os');
+var _ = require('lodash');
 var inquirer = require("inquirer");
 var levelup = require('level');
 var bcrypt = require('bcrypt');
@@ -45,9 +46,6 @@ try {
 try {
 	config.URL = config.URL || os.networkInterfaces().eth0[0].address;
 } catch(e){};
-
-var q_production = require('./questions/production_main.js')(config);
-var q_development = require('./questions/development_main.js')(config);
 
 var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
 
@@ -92,25 +90,22 @@ var questions = [{
 inquirer.prompt(questions, function(bev) {
 
 	bev = bev.BUILD_ENVIRONMENT;
-
-	inquirer
-	.prompt(bev	? q_production : q_development, function(a) {
+	
+ 	var complete = function(a) {
 
 		var model;
 		var client;
 		var repo;
 	
+		//	Merge answers into config. Note that some special overrides follow.
+		//
+		config = _.merge(config, a);
+		
 		config.BUILD_ENVIRONMENT = bev ? "production" : "development";
 		config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
-		config.PROTOCOL = a.PROTOCOL || config.PROTOCOL;
 		config.DEV_AUTO_RELOAD = a.DEV_AUTO_RELOAD ? 'yes' : 'no';
 		config.DEV_OPEN_TUNNEL = a.DEV_OPEN_TUNNEL ? 'yes' : 'no';
-		config.URL = a.URL;
-		config.HOST = a.HOST || config.HOST;
-		config.PORT = a.PORT || config.PORT;
-		config.LOGGLY_SUBDOMAIN = a.LOGGLY_SUBDOMAIN;
-		config.LOGGLY_TOKEN = a.LOGGLY_TOKEN;
-		
+				
 		//	Every server get a unique key for hashing.
 		//
 		config.SESSION_SECRET = uuid.v4();
@@ -136,5 +131,8 @@ inquirer.prompt(questions, function(bev) {
 			fs.writeFileSync(path.join(PM2Dir, 'dev.json'), JSON.stringify(devPM2));
 			fs.writeFileSync('./bin/.config.json', JSON.stringify(config));
 		});
-	});
+	};
+
+	bev	? require('./questions/production.js')(config, complete) 
+		: require('./questions/development.js')(config, complete);
 });
