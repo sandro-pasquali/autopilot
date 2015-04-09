@@ -11,29 +11,10 @@ var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
 var dulcimer = require('dulcimer');
 var GitHubApi = require("github");
-var bunyan = require('bunyan');
 
-var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
-var npmPackage = require('../package.json');
-
-//	Will be adding properties #instances and #script. See below.
+//	Check system dependencies, which will (process)exit if something missing.
 //
-var prodPM2 = {
-	"apps": [{
-		"name": "autopilot-server",
-		"cwd": "./",
-		"exec_mode": "cluster_mode"
-	}]
-};
-
-//	Will be adding properties #script. See below.
-//
-var devPM2 = {
-	"apps": [{ 
-		"name": "autopilot-dev",
-		"cwd": "./"
-	}]
-};
+require('./dependencies');
 
 //	Grab config data. Either a previous build, or initially from defaults.
 //	Configuration is performed on every `npm start`.
@@ -71,13 +52,27 @@ try {
 	config.URL = config.URL || os.networkInterfaces().eth0[0].address;
 } catch(e){};
 
-var log = bunyan.createLogger({
-	name: "autopilot",
-	streams: [{
-		path: config.LOG_FILE,
-		type: 'file'
+var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
+var npmPackage = require('../package.json');
+
+//	Will be adding properties #instances and #script. See below.
+//
+var prodPM2 = {
+	"apps": [{
+		"name": "autopilot-server",
+		"cwd": "./",
+		"exec_mode": "cluster_mode"
 	}]
-});
+};
+
+//	Will be adding properties #script. See below.
+//
+var devPM2 = {
+	"apps": [{ 
+		"name": "autopilot-dev",
+		"cwd": "./"
+	}]
+};
 
 //	Create folders for level data and PM2 process startup configs.
 //
@@ -93,12 +88,27 @@ var questions = [{
 	type: "confirm",
 	name: "BUILD_ENVIRONMENT",
 	default: false,
-	message: "Will this be a PRODUCTION server?"
+	message: "Is this a PRODUCTION server"
+}, {
+	type: "input",
+	name: "REDIS_HOST",
+	default: config.REDIS_HOST,
+	message: "Redis host"
+}, {
+	type: "input",
+	name: "REDIS_PORT",
+	default: config.REDIS_PORT,
+	message: "Redis port"
+}, {
+	type: "password",
+	name: "REDIS_PASSWORD",
+	default: config.REDIS_PASSWORD,
+	message: "Redis password"
 }];
 
-inquirer.prompt(questions, function(bev) {
+inquirer.prompt(questions, function(general) {
 
-	bev = bev.BUILD_ENVIRONMENT;
+	var bev = general.BUILD_ENVIRONMENT;
 	
  	var complete = function(a) {
 
@@ -108,8 +118,8 @@ inquirer.prompt(questions, function(bev) {
 	
 		//	Merge answers into config. Note that some special overrides follow.
 		//
-		config = _.merge(config, a);
-		
+		config = _.merge(config, general, a);
+
 		config.BUILD_ENVIRONMENT = bev ? "production" : "development";
 		config.NUM_CLUSTER_CORES = typeof a.NUM_CLUSTER_CORES === 'undefined' ? config.NUM_CLUSTER_CORES : a.NUM_CLUSTER_CORES;
 		config.DEV_AUTO_RELOAD = a.DEV_AUTO_RELOAD ? 'yes' : 'no';
@@ -161,9 +171,8 @@ inquirer.prompt(questions, function(bev) {
 					}
 				}, function(err, resp) {
 					if(err) {
-						return log.error(err);
+						throw new Error(err);
 					}
-					log.info('Wehook added: ' + resp.config.url);
 				});
 
 		

@@ -1,16 +1,10 @@
 var fs = require('fs');
 var path = require('path');
 var env = require('../env');
+var api = require('../api');
 var exec = require('child_process').exec;
-var bunyan = require('bunyan');
 
-var log = bunyan.createLogger({
-	name: 'autopilot',
-	streams: [{
-		path: env.LOG_FILE,
-		type: 'file'
-	}]
-});
+var log = api.log.create('swanson-push');
 
 var args = process.argv.slice(2);
 

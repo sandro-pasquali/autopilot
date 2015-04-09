@@ -18,8 +18,13 @@ export SCRIPTS_DIR=build/js
 export STYLES_DIR=build/css
 
 export SERVER_ROUTES=./router/routes
+
+#	Ensure that this is a real path that has write permissions 
+#
 export LOG_FILE=swanson/output.log
+
 export LEVEL_DB=data/main.db
+export REDIS_MAX_ATTEMPTS=10
 
 #	Where the cloning and other testing of repos happens
 #
@@ -40,6 +45,12 @@ export PORT=2122
 export NUM_CLUSTER_CORES=0
 export DEV_AUTO_RELOAD=yes
 export DEV_OPEN_TUNNEL=yes
+
+#	See REDIS_MAX_ATTEMPTS, above
+export REDIS_HOST=127.0.0.1
+export REDIS_PORT=6379
+export REDIS_PASSWORD=
+
 #	This is generated automatically on prod start, so the default
 #	value here has no influence on the final value.
 #

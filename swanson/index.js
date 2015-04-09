@@ -7,16 +7,10 @@ var fork = require('child_process').fork;
 var pm2 = require('pm2');
 var uuid = require('node-uuid');
 var del = require('del');
-var bunyan = require('bunyan');
 var env = require('../env');
+var api = require('../api');
 
-var log = bunyan.createLogger({
-	name: 'autopilot',
-	streams: [{
-		path: env.LOG_FILE,
-		type: 'file'
-	}]
-});
+var log = api.log.create('swanson-index');
 
 process.on('message', function(msg) {  
 
