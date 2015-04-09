@@ -61,6 +61,21 @@ var group = function(config) {
 			return true;
 		}
 	}, {
+		type: "input",
+		name: "GITHUB_API_TOKEN",
+		default: config.GITHUB_API_TOKEN,
+		message: "Github API token"
+	}, {
+		type: "input",
+		name: "GITHUB_USER_NAME",
+		default: config.GITHUB_USER_NAME,
+		message: "Github username"
+	}, {
+		type: "input",
+		name: "GITHUB_REPO_NAME",
+		default: config.GITHUB_REPO_NAME,
+		message: "Github repo name"
+	}, {
 		type: "checkbox",
 		name: "services",
 		choices: [{

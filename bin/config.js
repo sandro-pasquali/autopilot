@@ -10,6 +10,30 @@ var bcrypt = require('bcrypt');
 var mkdirp = require('mkdirp');
 var uuid = require('node-uuid');
 var dulcimer = require('dulcimer');
+var GitHubApi = require("github");
+var bunyan = require('bunyan');
+
+var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
+var npmPackage = require('../package.json');
+
+//	Will be adding properties #instances and #script. See below.
+//
+var prodPM2 = {
+	"apps": [{
+		"name": "autopilot-server",
+		"cwd": "./",
+		"exec_mode": "cluster_mode"
+	}]
+};
+
+//	Will be adding properties #script. See below.
+//
+var devPM2 = {
+	"apps": [{ 
+		"name": "autopilot-dev",
+		"cwd": "./"
+	}]
+};
 
 //	Grab config data. Either a previous build, or initially from defaults.
 //	Configuration is performed on every `npm start`.
@@ -47,28 +71,13 @@ try {
 	config.URL = config.URL || os.networkInterfaces().eth0[0].address;
 } catch(e){};
 
-var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
-
-var npmPackage = require('../package.json');
-
-//	Will be adding #instances and #script. See below.
-//
-var prodPM2 = {
-	"apps": [{
-		"name": "autopilot-server",
-		"cwd": "./",
-		"exec_mode": "cluster_mode"
+var log = bunyan.createLogger({
+	name: "autopilot",
+	streams: [{
+		path: config.LOG_FILE,
+		type: 'file'
 	}]
-};
-
-//	Will be adding #script. See below.
-//
-var devPM2 = {
-	"apps": [{ 
-		"name": "autopilot-dev",
-		"cwd": "./"
-	}]
-};
+});
 
 //	Create folders for level data and PM2 process startup configs.
 //
@@ -109,13 +118,54 @@ inquirer.prompt(questions, function(bev) {
 		//	Every server get a unique key for hashing.
 		//
 		config.SESSION_SECRET = uuid.v4();
-	
+			
 		//	Configure DB, models, etc, and update relevant config files.
 		//
 		levelup(config.LEVEL_DB, function(err) {
+		
 			dulcimer.connect(config.LEVEL_DB);
+			
+			var github = new GitHubApi({
+				version: "3.0.0",
+				debug: false,
+				protocol: "https",
+				timeout: 5000,
+				headers: {
+					"user-agent": "Production-Webhook-Github"
+				}
+			});
 		
 			if(bev) {
+
+				//	Create a webhook on push. The production server
+				//	will configure endpoint. 
+				//	@see	swanson/index.js
+				//
+				github.authenticate({
+					type: "oauth",
+					token: config.GITHUB_API_TOKEN
+				})
+				
+				github.repos.createHook({
+					"user": config.GITHUB_USER_NAME,
+					"repo": config.GITHUB_REPO_NAME,
+					"name": "web",
+					"secret": config.SESSION_SECRET,
+					"active": true,
+					"events": [
+						"push"
+					],
+					"config": {
+						"url": "http://" + config.URL + "/swanson",
+						"content_type": "json"
+					}
+				}, function(err, resp) {
+					if(err) {
+						return log.error(err);
+					}
+					log.info('Wehook added: ' + resp.config.url);
+				});
+
 		
 				//	Eventually create an admin account, mainly for accessing
 				//	admin interfaces, using dulcimer, leveldb, etc.

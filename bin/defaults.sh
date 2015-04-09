@@ -25,6 +25,11 @@ export LEVEL_DB=data/main.db
 #
 export WORKING_DIRECTORY=swanson
 
+#	Github repo info. This should be where this repo is pulled from.
+#
+export GITHUB_USER_NAME=sandro-pasquali
+export GITHUB_REPO_NAME=autopilot
+
 #	This last group is exposed/changeable when you run configuration tool.
 #
 export BUILD_ENVIRONMENT=development
