@@ -171,7 +171,8 @@ inquirer.prompt(questions, function(general) {
 					}
 				}, function(err, resp) {
 					if(err) {
-						throw new Error(err);
+						//	Errors should be checked, but it is expected that
+						//	we'll receive a 'hook already exists' error
 					}
 				});
 
