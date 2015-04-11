@@ -1,5 +1,5 @@
 #	These are the defaults for the system. Some of them can be changed via
-#	`npm run-script config`. You shouldn't change the others. If you must,
+#	`npm run config`. You shouldn't change the others. If you must,
 #	then you will need to manually restart any production servers, inserting
 #	and using the new settings, and possibly other repos.
 #	
@@ -17,11 +17,15 @@ export PARTIALS_DIR=build/partials
 export SCRIPTS_DIR=build/js
 export STYLES_DIR=build/css
 
-export SERVER_ROUTES=./router/routes
-
 #	Ensure that this is a real path that has write permissions 
 #
 export LOG_FILE=swanson/output.log
+
+#	The semver representation of required Node version. You must set this.
+#	Note: You will need to encode equal sign(=) (%3D), as in '>=' etc.
+#	Other chars(~^ - * should be fine)
+#
+export NEED_NODE_VERSION=>%3D0.12.x
 
 export LEVEL_DB=data/main.db
 export REDIS_MAX_ATTEMPTS=10
@@ -30,10 +34,20 @@ export REDIS_MAX_ATTEMPTS=10
 #
 export WORKING_DIRECTORY=swanson
 
+#	Express routes
+#
+export SERVER_ROUTES=router/routes
+
 #	Github repo info. This should be where this repo is pulled from.
 #
 export GITHUB_USER_NAME=sandro-pasquali
 export GITHUB_REPO_NAME=autopilot
+
+#	PM2 process names differ in DEVELOPMENT and PRODUCTION
+#	These are the names for processes seen in `pm2 list`
+#
+export PM2_PRODUCTION_NAME=autopilot-server
+export PM2_DEVELOPMENT_NAME=autopilot-dev
 
 #	This last group is exposed/changeable when you run configuration tool.
 #

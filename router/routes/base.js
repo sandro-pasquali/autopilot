@@ -1,6 +1,6 @@
 var path= require('path');
 
-module.exports = function(app) {
+module.exports = function(app, api) {
 	app.get('/', function(req, res) {
 		res.render('index', {});
 	});
@@ -9,3 +9,4 @@ module.exports = function(app) {
 		res.render('admin/index', {});
 	});
 };
+////////

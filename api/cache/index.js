@@ -1,3 +1,5 @@
+"use strict";
+
 var redis	= require('redis');
 var util 	= require('util');
 var Promise = require('bluebird');
@@ -13,8 +15,6 @@ var Cache = function(config) {
 		auth_pass : env.REDIS_PASSWORD,
 		max_attempts : env.REDIS_MAX_ATTEMPTS
 	});
-	
-	//this.client.auth(env.REDIS_PASSWORD);
 };
 
 Cache.prototype.get = function(key) {

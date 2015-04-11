@@ -16,32 +16,9 @@ var GitHubApi = require("github");
 //
 require('./dependencies');
 
-//	Grab config data. Either a previous build, or initially from defaults.
-//	Configuration is performed on every `npm start`.
+//	We may not have a config.json file yet. Use defaults if not.
 //
-try {
-	var config = JSON.parse(fs.readFileSync('bin/.config.json', { 
-		encoding: 'utf8'
-	}));
-} catch(e) {
-	var config = fs
-	.readFileSync('./bin/defaults.sh', {
-		encoding:'utf8'
-	})
-	.split('\n')
-	.reduce(function(prev, next) {
-	
-		var line = next.trim();
-		var m = line.match(/^export (.*)=(.*)$/);
-	
-		if(m) {
-			prev[m[1]] = m[2];
-		}
-		
-		return prev;
-	
-	}, {});
-}
+var config = require('../env/configOrDefaults.js');
 
 //	Determine the default IP, providing a default "URL" option, below.
 //	Note that this isn't perfectly accurate, nor meant to be. It provides
@@ -55,11 +32,12 @@ try {
 var PM2Dir = path.resolve(process.cwd(), './pm2_processes');
 var npmPackage = require('../package.json');
 
-//	Will be adding properties #instances and #script. See below.
+//	Will be adding properties #instances and #script. See below, where
+//	these maps are written to files.
 //
 var prodPM2 = {
 	"apps": [{
-		"name": "autopilot-server",
+		"name": config.PM2_PRODUCTION_NAME,
 		"cwd": "./",
 		"exec_mode": "cluster_mode"
 	}]
@@ -69,7 +47,7 @@ var prodPM2 = {
 //
 var devPM2 = {
 	"apps": [{ 
-		"name": "autopilot-dev",
+		"name": config.PM2_DEVELOPMENT_NAME,
 		"cwd": "./"
 	}]
 };
@@ -79,37 +57,16 @@ var devPM2 = {
 mkdirp.sync(path.dirname(config.LEVEL_DB));
 mkdirp.sync(PM2Dir);
 
-
-//	The question/answer definitions
-//	The first question sets build environment true or false,
-//	from which fork we load other question sets.
+//	Ask general questions, one of which is whether this is 
+//	production or development config. Based on that answer
+//	ask either prod or dev questions.
 //
-var questions = [{
-	type: "confirm",
-	name: "BUILD_ENVIRONMENT",
-	default: false,
-	message: "Is this a PRODUCTION server"
-}, {
-	type: "input",
-	name: "REDIS_HOST",
-	default: config.REDIS_HOST,
-	message: "Redis host"
-}, {
-	type: "input",
-	name: "REDIS_PORT",
-	default: config.REDIS_PORT,
-	message: "Redis port"
-}, {
-	type: "password",
-	name: "REDIS_PASSWORD",
-	default: config.REDIS_PASSWORD,
-	message: "Redis password"
-}];
-
-inquirer.prompt(questions, function(general) {
+require('./questions/general.js')(config, function(general) {
 
 	var bev = general.BUILD_ENVIRONMENT;
 	
+	//	Executes when dev/prod questions are answered. See below.
+	//
  	var complete = function(a) {
 
 		var model;

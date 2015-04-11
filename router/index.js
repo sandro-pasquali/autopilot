@@ -42,7 +42,7 @@ module.exports = function $Server_Factory() {
 	//	that we pass the #app to.
 	//
 	glob.sync(env.SERVER_ROUTES + '/*.js').forEach(function(r) {
-		require(path.resolve(r))(app);
+		require(path.resolve(r))(app, api);
 	});
 	
 	swanson(app, server);

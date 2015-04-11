@@ -1,3 +1,5 @@
+"use strict";
+
 var ask = require('./ask.js');
 
 var group1 = function(config) {

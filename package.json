@@ -64,6 +64,7 @@
     "pm2": "^0.12.8",
     "redis": "^0.12.1",
     "request": "^2.54.0",
+    "semver": "^4.3.3",
     "sinon": "^1.12.2",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.0.0"

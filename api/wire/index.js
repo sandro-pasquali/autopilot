@@ -2,54 +2,79 @@ var redis = require('redis');
 var Promise = require('bluebird');
 var env = require('../../env');
 
-var publisher = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
-	auth_pass : env.REDIS_PASSWORD,
-	max_attempts : env.REDIS_MAX_ATTEMPTS
-});
-//publisher.auth(env.REDIS_PASSWORD);
-
-var subscriber = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
-	auth_pass : env.REDIS_PASSWORD,
-	max_attempts : env.REDIS_MAX_ATTEMPTS
-});
-//subscriber.auth(env.REDIS_PASSWORD);
+var publisher;
+var subscriber;
 
 var subscriptions = {};
 var totalPublished = 0;
 var totalReceived = 0;
 var totalSubscriptions = 0;
 
-subscriber.on('message', function(channel, message) {
-	++totalReceived;
+var ensureConnection = function(cb) {
+
+	if(publisher && subscriber) {
+		return cb();
+	}
+
+	var count = 0;
 	
-	subscriptions[channel].forEach(function(cb) {
-		cb(message);
-	});
-});
+	var ready = function() {
+		if(--count === 0) {
+			cb();
+		}
+	}
 
-subscriber.on('pmessage', function(pattern, channel, message) {
-	++totalReceived;
+	if(!publisher) {
+		++count;
+		publisher = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
+			auth_pass : env.REDIS_PASSWORD,
+			max_attempts : env.REDIS_MAX_ATTEMPTS
+		})
+		publisher.on('ready', ready);
+	}
 	
-	subscriptions[pattern].forEach(function(cb) {
-		cb(message);
-	});
-});
-
-subscriber.on('subscribe', function(channel, count) {
-	totalSubscriptions = count;
-});
-
-subscriber.on('psubscribe', function(pattern, count) {
-	totalSubscriptions = count;
-});
-
-subscriber.on('unsubscribe', function(channel, count) {
-	totalSubscriptions = count;
-});
-
-subscriber.on('punsubscribe', function(pattern, count) {
-	totalSubscriptions = count;
-});
+	if(!subscriber) {
+		++count;
+		subscriber = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
+			auth_pass : env.REDIS_PASSWORD,
+			max_attempts : env.REDIS_MAX_ATTEMPTS
+		});
+		
+		subscriber.on('message', function(channel, message) {
+			++totalReceived;
+			
+			subscriptions[channel].forEach(function(cb) {
+				cb(message);
+			});
+		});
+		
+		subscriber.on('pmessage', function(pattern, channel, message) {
+			++totalReceived;
+			
+			subscriptions[pattern].forEach(function(cb) {
+				cb(message);
+			});
+		});
+		
+		subscriber.on('subscribe', function(channel, count) {
+			totalSubscriptions = count;
+		});
+		
+		subscriber.on('psubscribe', function(pattern, count) {
+			totalSubscriptions = count;
+		});
+		
+		subscriber.on('unsubscribe', function(channel, count) {
+			totalSubscriptions = count;
+		});
+		
+		subscriber.on('punsubscribe', function(pattern, count) {
+			totalSubscriptions = count;
+		});
+		
+		subscriber.on('ready', ready);
+	}
+}
 
 var api = {
 	
@@ -72,15 +97,18 @@ var api = {
 			if(typeof channel !== 'string') {
 				return reject(new TypeError('Publish channel must be a String'));
 			}
-			//	A payload is allowed to be empty.
-			//
-			payload = typeof payload === 'undefined' ? {} : payload;
 			
-			++totalPublished;
-			
-			publisher.publish(channel, payload);
-			
-			resolve(Date.now());
+			ensureConnection(function() {
+				//	A payload is allowed to be empty.
+				//
+				payload = typeof payload === 'undefined' ? {} : payload;
+				
+				++totalPublished;
+				
+				publisher.publish(channel, payload);
+				
+				resolve(Date.now());
+			});
 		});
 	},
 	
@@ -95,17 +123,19 @@ var api = {
 				return reject(new TypeError('Subcribe callback must be a function'));
 			}
 			
-			if(!subscriptions[channel]) {
-				subscriptions[channel] = [];
-			}
-			
-			//	Can have multiple subscribers
-			//
-			subscriptions[channel].push(callback);
-			
-			subscriber.subscribe(channel); 
-			
-			resolve(Date.now());
+			ensureConnection(function() {
+				if(!subscriptions[channel]) {
+					subscriptions[channel] = [];
+				}
+				
+				//	Can have multiple subscribers
+				//
+				subscriptions[channel].push(callback);
+				
+				subscriber.subscribe(channel); 
+				
+				resolve(Date.now());
+			});
 		});
 	},
 	
@@ -116,9 +146,11 @@ var api = {
 				return reject(new TypeError('Unsubscribe channel must be a String'));
 			}
 			
-			subscriber.unsubscribe(channel);
-			
-			resolve(Date.now());
+			ensureConnection(function() {
+				subscriber.unsubscribe(channel);
+				
+				resolve(Date.now());
+			});
 		});
 	},
 	
@@ -129,13 +161,15 @@ var api = {
 				return reject(new TypeError('Psubscribe pattern must be a String'));
 			}
 			
-			//	Can have multiple subscribers
-			//
-			subscriptions[pattern].push(callback);
-			
-			subscriber.psubscribe(pattern);
-			
-			resolve(Date.now());
+			ensureConnection(function() {
+				//	Can have multiple subscribers
+				//
+				subscriptions[pattern].push(callback);
+				
+				subscriber.psubscribe(pattern);
+				
+				resolve(Date.now());
+			});
 		});
 	},
 	
@@ -146,9 +180,11 @@ var api = {
 				return reject(new TypeError('Punsubscribe pattern must be a String'));
 			}
 			
-			subscriber.punsubscribe(pattern);
-			
-			resolve(Date.now());
+			ensureConnection(function() {
+				subscriber.punsubscribe(pattern);
+				
+				resolve(Date.now());
+			});
 		});
 	}
 	

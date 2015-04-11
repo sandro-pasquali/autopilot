@@ -1,8 +1,10 @@
+"use strict";
+
 var fs = require('fs');
+var exec = require('child_process').exec;
 var path = require('path');
 var env = require('../env');
 var api = require('../api');
-var exec = require('child_process').exec;
 
 var log = api.log.create('swanson-push');
 
@@ -94,7 +96,7 @@ function prepareClone(cb) {
 }
 
 function cleanAndRestart(cb) {
-	var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload autopilot-server';
+	var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
 	exec(command, cb);
 	log.info("*WEBHOOK RESTART: " + command);
 }

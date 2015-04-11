@@ -1,6 +1,7 @@
 "use strict";
 
 var path 		= require('path');
+var exec		= require('child_process').exec;
 var mkdirp 		= require('mkdirp');
 var del			= require('del');
 var request 	= require('request');
@@ -25,6 +26,13 @@ var plumber 	= require('gulp-plumber');
 var minifyHTML 	= require('gulp-minify-html');
 
 var env = require('./env');
+var api = require('./api');
+
+var log = api.log.create('gulp');
+
+//	@see	#browser-sync
+//
+var PM2IsReloading = false;
 
 var reload = browserSync.reload;
 
@@ -224,7 +232,10 @@ gulp.task('views', ['scaffold'], function() {
 
 gulp.task('browser-sync', ['browserify'], function(cb) {
 
-	if(env.DEV_AUTO_RELOAD !== 'yes') {
+	//	Ignore if no reload is requested, or not in DEVELOPMENT
+	//	mode (only auto reload in dev mode)
+	//
+	if(env.DEV_AUTO_RELOAD !== 'yes' || env.BUILD_ENVIRONMENT !== "development") {
 		return cb();
 	}
 
@@ -249,6 +260,21 @@ gulp.task('browser-sync', ['browserify'], function(cb) {
 	gulp.watch(path.join(env.SOURCE_STYLES_DIR, '**/*'), ['concat-css']);
 	gulp.watch(path.join(env.SOURCE_TEMPLATES_DIR, '/**/*.hbs'), ['browserify']);
 	gulp.watch(path.join(env.SOURCE_SCRIPTS_DIR, '**/*'), ['browserify']);
+	
+	//	When routes change, reload server
+	//
+	gulp.watch(path.join(env.SERVER_ROUTES, '**/*'), function(ev) {
+		if(PM2IsReloading) {
+			return;
+		}
+		PM2IsReloading = true;
+		exec('pm2 gracefulReload ' + env.PM2_DEVELOPMENT_NAME, function(err) {
+			if(err) {
+				log.error('PM2 reload failed');
+			}
+			PM2IsReloading = false;
+		});
+	});
 	
 	cb();
 });

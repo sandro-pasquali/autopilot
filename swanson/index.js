@@ -1,3 +1,5 @@
+"use strict";
+
 var fs = require('fs');
 var os = require('os');
 var path = require('path');
@@ -18,7 +20,7 @@ process.on('message', function(msg) {
 	//	the PM2 shutdown message, allowing use to clean up before restart.
 	//
 	if(msg === 'shutdown') {
-		//	Do something here, such as logging.	
+		//	any cleanup you need to do
 	}
 });
 
@@ -92,7 +94,7 @@ module.exports = function(app, server) {
 	//
 	if(env.BUILD_ENVIRONMENT !== 'production') {
 		pm2.connect(function(err) {
-			pm2.describe('autopilot-dev', function(err, list) {
+			pm2.describe(env.PM2_DEVELOPMENT_NAME, function(err, list) {
 				if(!list || list.length === 0) {
 					exec('pm2 start pm2_processes/dev.json', function(err) {
 						if(err) {
@@ -114,9 +116,7 @@ module.exports = function(app, server) {
 	
 	//	The route called by Github on hook event in PRODUCTION servers
 	//
-	app.post('/swanson', function(req, res) {
-		swansonHandler(req, res);
-	});		
+	app.post('/swanson', swansonHandler);		
 	
 	//	PM2 is running in cluster mode. When the clustering re-calls this
 	//	server, it will be via the script 
