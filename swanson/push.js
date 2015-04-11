@@ -7,6 +7,7 @@ var env = require('../env');
 var api = require('../api');
 
 var log = api.log.create('swanson-push');
+var cache = api.cache.create('hook:push:');
 
 var args = process.argv.slice(2);
 

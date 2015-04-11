@@ -5,50 +5,73 @@ var util 	= require('util');
 var Promise = require('bluebird');
 var env = require('../../env');
 
-var Cache = function(config) {
+var client;
 
-	config = config || {};
+var ensureClient = function(cb) {
+	if(!client) {
+		client = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
+			auth_pass : env.REDIS_PASSWORD,
+			max_attempts : env.REDIS_MAX_ATTEMPTS
+		})
+		client.on('ready', function() {
+			cb(client);
+		});
+		client.on('error', function(err) {
+			throw new Error(err);
+		});
+		
+		return;
+	}
+	
+	return cb(client);
+}
 
-	this.prefix = config.prefix || 'cache:';
-
-	this.client = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
-		auth_pass : env.REDIS_PASSWORD,
-		max_attempts : env.REDIS_MAX_ATTEMPTS
-	});
+var Cache = function(prefix, ttl) {
+	this.prefix = prefix;
+	this.ttl = ttl ? +ttl : 60*60;
 };
 
 Cache.prototype.get = function(key) {
 	
 	key = this.prefix + key;
 	
-	var client = this.client;
-	
 	return new Promise(function(resolve, reject) {
-		client.hgetall(key, function(err, result) {
-			err ? reject() : resolve(result);
+		ensureClient(function() {
+			client.hgetall(key, function(err, result) {
+				err ? reject(err) : resolve(result);
+			});
 		});
 	});
 };
 
-//	Expect an object as value
+//	Set a cached value. Note that #ttl, if not specified, defaults
+//	to #ttl as specified (or not) by constructor.
+//
+//	@param key 		{String} The cache key
+//	@param val 		{String} The value to store
+//	@param [ttl]	{Integer} The lifespan in seconds of this key
+//
+//	@return {Promise}
 //
 Cache.prototype.set = function(key, val, ttl) {
 
 	var _this = this;
-
 	var pkey = this.prefix + key;
-	
-	var client = this.client;
 	var setArr = [];
+	var k;
 	
-	for(var k in val) {
+	ttl = ttl ? +ttl : this.ttl;
+	
+	for(k in val) {
 		setArr[k] = val[k];
 	}
 	
 	return new Promise(function(resolve, reject) {
-		client.hmset(pkey, setArr, function(err) {
-			err ? reject() : resolve();
-			ttl && _this.expire(key, ttl);
+		ensureClient(function() {
+			client.hmset(pkey, setArr, function(err) {
+				err ? reject(err) : resolve();
+				ttl && _this.expire(key, ttl);
+			});
 		});
 	});
 };
@@ -58,27 +81,28 @@ Cache.prototype.set = function(key, val, ttl) {
 Cache.prototype.clear = function() {
 
 	var prefixMatch = this.prefix + '*';
-	var client 		= this.client;
 	
 	return new Promise(function(resolve, reject) {
-		(function scanner(cursor) {
-			client.scan([+cursor, 'match', prefixMatch], function(err, scn) {
-				if(err) {
-					return reject();
-				}
-				//	Delete array of matched keys
-				//
-				client.del(scn[1]);
-				
-				//	More? Continue scan.
-				//
-				if(+scn[0] !== 0) {
-					return scanner(scn[0]);
-				}
-				
-				resolve();
-			})
-		})(0);
+		ensureClient(function() {
+			(function scanner(cursor) {
+				client.scan([+cursor, 'match', prefixMatch], function(err, scn) {
+					if(err) {
+						return reject(err);
+					}
+					//	Delete array of matched keys
+					//
+					client.del(scn[1]);
+					
+					//	More? Continue scan.
+					//
+					if(+scn[0] !== 0) {
+						return scanner(scn[0]);
+					}
+					
+					resolve();
+				})
+			})(0);
+		});
 	});
 };
 
@@ -98,11 +122,11 @@ Cache.prototype.remove = function(keys) {
 		return prefix + key;
 	});
 	
-	var client = this.client;
-	
 	return new Promise(function(resolve, reject) {
-		client.del(keys, function(err, numrem) {
-			err ? reject() : resolve(numrem);
+		ensureClient(function() {
+			client.del(keys, function(err, numrem) {
+				err ? reject(err) : resolve(numrem);
+			});
 		});
 	});
 };
@@ -112,22 +136,21 @@ Cache.prototype.expire = function(key, ttl) {
 	ttl = ttl ? +ttl : 0;
 	key = this.prefix + key;
 	
-	var client = this.client;
-	
 	return new Promise(function(resolve, reject) {	
-		client.expire(key, ttl, function(err, ok) {
-			err || !ok ? reject() : resolve(ok);
+		ensureClient(function() {
+			client.expire(key, ttl, function(err, ok) {
+				err || !ok ? reject(err) : resolve(ok);
+			});
 		});
 	});
 };
 
-Cache.prototype.close = function() {
-	this.client.quit();
-};
-
 module.exports = {
-	create : function(config) {
-		return new Cache(config);
+	create : function(prefix, ttl) {
+		if(typeof prefix !== 'string' || prefix === "") {
+			throw new Error('Cache must receive a String prefix as first argument');
+		}
+		return new Cache(prefix, ttl);
 	},
 	inspect : function() {
 		return {
@@ -135,26 +158,3 @@ module.exports = {
 		}
 	}
 };
-
-/*
-
-var Cache = require('./rediscache');
-
-var cache = new Cache();
-
-cache
-.set('sandro', {
-	foo: 'bar'
-})
-.then(function() {
-	cache
-	.get('sandro')
-	.then(function(val) {
-		console.log(val);
-		cache
-		.clear()
-		.then(cache.close.bind(cache));
-	})
-})
-
-*/
