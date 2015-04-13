@@ -12,7 +12,8 @@ var del = require('del');
 var env = require('../env');
 var api = require('../api');
 
-var log = api.log.create('swanson-index');
+var log 	= api.log.create('swanson-index');
+var cache	= api.cache.create('webhooks:');
 
 process.on('message', function(msg) {  
 
@@ -34,10 +35,27 @@ var swansonHandler = function(req, res) {
 		removed : [],
 		modified : []
 	};
-	
+		
 	if(!req.body.commits) {
 		return;
 	}
+	
+	var hash = req.body.after;
+	
+	var manifest = JSON.stringify([
+		//	The folder into which the repo is cloned
+		//
+		path.join(env.WORKING_DIRECTORY, hash),
+		//	The Github url for the repo
+		//
+		req.body.repository.clone_url,
+		//	The root of the production repo we are running/changing
+		//
+		sourcePath,
+		//	Change data that was pushed by hook
+		//
+		changes
+	]);
 	
 	req.body.commits.forEach(function(obj) {
 		changes.removed = changes.removed.concat(obj.removed);
@@ -45,24 +63,33 @@ var swansonHandler = function(req, res) {
 		changes.added = changes.added.concat(obj.added);
 	});
 	
-	if(req.get('X-Github-Event') == "push") {
-		fork(swansonPath + '/push.js', [
-			//	The folder into which the repo is cloned
-			//
-			path.join(env.WORKING_DIRECTORY, req.body.after),
-			//	The Github url for the repo
-			//
-			req.body.repository.clone_url,
-			//	The root of the production repo we are running/changing
-			//
-			sourcePath,
-			//	Change data that was pushed by hook
-			//
-			JSON.stringify(changes)
-		]);
-	}
+	//	Check if there is an active build; cache if so.
+	//
+	cache
+	.get('currentbuild')
+	.then(function(results) {
+		var q = {};
+		//	If currently building, cache
+		//
+		if(res[0]) {
+		
+			q[hash] = JSON.stringify(manifest);
+			
+			cache
+				.set('queuedbuilds', q)
+				.catch(function(err) {
+					log.error(err);
+				});
+			
+			return;
+		}
 	
-	res.send('ok');
+		if(req.get('X-Github-Event') == "push") {
+			fork(swansonPath + '/push.js', [manifest]);
+		}
+		
+		res.send('ok');
+	});
 }
 
 var listen = function(app, server) {

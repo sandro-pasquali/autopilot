@@ -7,25 +7,28 @@ var env = require('../env');
 var api = require('../api');
 
 var log = api.log.create('swanson-push');
-var cache = api.cache.create('hook:push:');
 
 var args = process.argv.slice(2);
+var json = JSON.parse(args[0]);
 
+console.log(json);
+
+process.exit(0);
 //	The github repo clone url
 //
-var cloneUrl = args[1];
+var cloneUrl = json[1];
 
 //	The directory of the repo that is being watched/changed
 //
-var sourceDir = args[2];
+var sourceDir = json[2];
 
 //	The directory in which test clones are pulled and tested
 //
-var cloneDir = args[0];
+var cloneDir = json[0];
 
 //	What was removed, modified or added
 //
-var commits = JSON.parse(args[3]);
+var commits = json[3];
 
 function cloneRepo(cb) {
 	var command = 'git clone ' + cloneUrl + ' ' + cloneDir;
