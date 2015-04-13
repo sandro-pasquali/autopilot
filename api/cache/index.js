@@ -49,9 +49,9 @@ var Cache = function(prefix, ttl) {
 	//
 	this.prefix = prefix;
 	
-	//	Default = ~1 day
+	//	Default = ~1 week
 	//
-	this.ttl = ttl ? +ttl : 60*60*24;
+	this.ttl = ttl ? +ttl : 60*60*24*7;
 };
 
 //	Fetch a cache item by key.
@@ -84,7 +84,7 @@ Cache.prototype.get = function(key) {
 				if(err) {
 					return reject(err);
 				}
-				resolve(vals);
+				resolve(vals.length > 1 ? vals : vals[0]);
 			});
 		});
 	});
@@ -161,7 +161,7 @@ Cache.prototype.set = function(key, val, ttl) {
 				
 				//	Send back key array
 				//
-				resolve(key);
+				resolve(key.length > 1 ? key : key[0]);
 			});
 		});
 	});
