@@ -7,28 +7,32 @@ var _ 		= require('lodash');
 var env 	= require('../../env');
 var lib 	= require('../../lib');
 
+//	Within the api, controllers load deps directly, mainly to handle
+//	the fact that this will be required during api construction itself...
+//
+var log = require('../log');
+
 var client;
 
 //	The creation of clients is done after first api request. Each method
 //	that requires a client will run this check on each request.
 //
 var ensureClient = function(cb) {
-	if(!client) {
-		client = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
-			auth_pass : env.REDIS_PASSWORD,
-			max_attempts : env.REDIS_MAX_ATTEMPTS
-		})
-		client.on('ready', function() {
-			cb(client);
-		});
-		client.on('error', function(err) {
-			throw new Error(err);
-		});
-		
-		return;
+
+	if(client) {
+		return cb(client);
 	}
-	
-	return cb(client);
+
+	client = redis.createClient(env.REDIS_PORT, env.REDIS_HOST, {
+		auth_pass : env.REDIS_PASSWORD,
+		max_attempts : env.REDIS_MAX_ATTEMPTS
+	})
+	client.on('ready', function() {
+		cb(client);
+	});
+	client.on('error', function(err) {
+		log.error(err);
+	});
 };
 
 //	Constructor
@@ -40,8 +44,14 @@ var ensureClient = function(cb) {
 //	@return {Cache}
 //
 var Cache = function(prefix, ttl) {
+
+	//	All #set keys are prefixed with this.
+	//
 	this.prefix = prefix;
-	this.ttl = ttl ? +ttl : 60*60;
+	
+	//	Default = ~1 day
+	//
+	this.ttl = ttl ? +ttl : 60*60*24;
 };
 
 //	Fetch a cache item by key.
@@ -63,7 +73,7 @@ Cache.prototype.get = function(key) {
 							
 		//	Ensure #key is always array
 		//
-		key = util.isArray(key) ? key : [key];
+		key = typeof key === 'string' ? [key] : key;
 							
 		ensureClient(function() {
 			var multi = client.multi();
@@ -108,9 +118,7 @@ Cache.prototype.set = function(key, val, ttl) {
 		
 		//	Ensure key is always an Array
 		//
-		if(typeof key === 'string') {
-			key = [key];
-		}
+		key = typeof key === 'string' ? [key] : key;
 		
 		//	Valid if:
 		//		(An object, or
@@ -213,7 +221,7 @@ Cache.prototype.remove = function(key) {
 		
 		//	Ensure #key is always array
 		//
-		key = util.isArray(key) ? key : [key];
+		key = typeof key === 'string' ? [key] : key;
 		
 		ensureClient(function() {
 			var multi = client.multi();
@@ -252,7 +260,7 @@ Cache.prototype.expire = function(key, ttl) {
 module.exports = {
 	create : function(prefix, ttl) {
 		if(typeof prefix !== 'string' || prefix === "") {
-			throw new Error('Cache must receive a String prefix as first argument');
+			log.error('Cache must receive a String prefix as first argument');
 		}
 		return new Cache(prefix, ttl);
 	},
