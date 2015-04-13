@@ -41,6 +41,12 @@ var swansonHandler = function(req, res) {
 	}
 	
 	var hash = req.body.after;
+		
+	req.body.commits.forEach(function(obj) {
+		changes.removed = changes.removed.concat(obj.removed);
+		changes.modified = changes.modified.concat(obj.modified);
+		changes.added = changes.added.concat(obj.added);
+	});
 	
 	var manifest = JSON.stringify([
 		//	The folder into which the repo is cloned
@@ -56,12 +62,6 @@ var swansonHandler = function(req, res) {
 		//
 		changes
 	]);
-	
-	req.body.commits.forEach(function(obj) {
-		changes.removed = changes.removed.concat(obj.removed);
-		changes.modified = changes.modified.concat(obj.modified);
-		changes.added = changes.added.concat(obj.added);
-	});
 	
 	//	Check if there is an active build; cache if so.
 	//
