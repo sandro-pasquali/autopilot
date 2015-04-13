@@ -84,6 +84,8 @@ var swansonHandler = function(req, res) {
 			return;
 		}
 	
+	console.log(manifest);
+	
 		if(req.get('X-Github-Event') == "push") {
 			fork(swansonPath + '/push.js', [manifest]);
 		}
