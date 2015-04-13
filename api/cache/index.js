@@ -55,27 +55,26 @@ Cache.prototype.get = function(key) {
 	var prefix = this.prefix;
 	
 	return new Promise(function(resolve, reject) {		
-		//	Either an Array or a String.
+		//	Either an Array of Strings, or a String.
 		//
-		var keys = util.isArray(key) 
-						? key 
-						: typeof key === 'string'
-							? [key]
-							: [];
-		if(!keys.length) {
-			return reject('Argument to cache.get must be either a String or an array of strings.');
+		if(!lib.validArgument(key, ['array', 'string'], 'string')) {
+			return reject(new TypeError('#get expects a string, or an array of strings'));
 		}
+							
+		//	Ensure #key is always array
+		//
+		key = util.isArray(key) ? key : [key];
 							
 		ensureClient(function() {
 			var multi = client.multi();
-			keys.forEach(function(k) {
+			key.forEach(function(k) {
 				multi.hgetall(prefix + k);
 			});
-			multi.exec(function(err, results) {
+			multi.exec(function(err, vals) {
 				if(err) {
 					return reject(err);
 				}
-				resolve(keys.length === 1 ? results[0] : results);
+				resolve(vals);
 			});
 		});
 	});
@@ -97,46 +96,64 @@ Cache.prototype.get = function(key) {
 Cache.prototype.set = function(key, val, ttl) {
 
 	var _this = this;
-	var prefix = this.prefix + key;
+	var prefix = this.prefix;
 	
 	ttl = ttl ? +ttl : this.ttl;
 			
 	return new Promise(function(resolve, reject) {
 
 		if(!lib.validArgument(key, ['string','array'], 'string')) {
-			return reject('First argument to #set must be a String, or an Array of strings');
+			return reject(new TypeError('First argument to #set must be a String, or an Array of strings'));
 		}
 		
+		//	Ensure key is always an Array
+		//
+		if(typeof key === 'string') {
+			key = [key];
+		}
+		
+		//	Valid if:
+		//		(An object, or
+		//		An array, and key = array, and both arrays of equal length)
+		//			(if object with only strings as values)
+		//
 		if(!lib.validArgument(val, ['object', function(cand) {
-			if(util.isArray(cand) && util.isArray(key)) {
+			if(util.isArray(cand)) {
 				return cand.length === key.length;
 			}
 			return false;
 		}], 'string')) {
-			return reject('Second argument to #set must be either a single map of key/value pairs with only Strings as values, or an array of these maps of length === to first argument (Array) length.');		
+			return reject(new TypeError('Second argument to #set must be either a single map of key/value pairs with only Strings as values, or an array of these maps of length === to first argument (Array) length.'));		
 		}
 
+		//	After validation #val must always be an Array of equal length to 
+		//	the #key Array.
+		//
 		if(lib.trueTypeOf(key) === 'array' && lib.trueTypeOf(val) === 'object') {
 			val = _.fill(new Array(key.length), val);				
 		}
 	
 		ensureClient(function() {
-			var setArr = [];
-			var k;
-			
-			//	Arguments to Redis interface an array of tuples
-			//	[k1,v1,k2,v2,k3,v3...]
-			//
-			for(k in val) {
-				setArr[k] = val[k];
-			}		
 
-			client.hmset(prefix, setArr, function(err) {
+			var multi = client.multi();
+			var rkey;
+			
+			key.forEach(function(k, idx) {
+			
+				var rkey = prefix + k;
+				
+				multi.hmset(rkey, val[idx]);
+				ttl && multi.expire(rkey, ttl);
+			});
+
+			multi.exec(function(err) {
 				if(err) {
-					return reject(err);
+					return reject(new Error(err));
 				}
-				ttl && _this.expire(key, ttl);
-				resolve(true);
+				
+				//	Send back key array
+				//
+				resolve(key);
 			});
 		});
 	});
@@ -188,20 +205,19 @@ Cache.prototype.remove = function(key) {
 	var prefix = this.prefix;
 
 	return new Promise(function(resolve, reject) {
-		//	Either an array or string
+		//	Either an Array of Strings, or a String.
 		//
-		var keys = util.isArray(key) 
-				? key
-				: typeof key === 'string'
-					? [key]
-					: [];
+		if(!lib.validArgument(key, ['array', 'string'], 'string')) {
+			return reject(new TypeError('#remove expects a string, or an array of strings'));
+		}	
 		
-		if(!keys.length) {
-			return reject('Argument to cache.remove must be either a String or an array of strings.');
-		}
+		//	Ensure #key is always array
+		//
+		key = util.isArray(key) ? key : [key];
+		
 		ensureClient(function() {
 			var multi = client.multi();
-			keys.forEach(function(k) {
+			key.forEach(function(k) {
 				multi.del(prefix + k);
 			});
 			multi.exec(function(err, numkeys) {

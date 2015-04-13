@@ -1,6 +1,6 @@
 "use strict";
 
-//	Note: This file should never be called directly. To start, use ../start.js
+//	Note: This file should never be called directly. To start, use ../server.js
 //
 var http		= require('http');
 var path		= require('path');
