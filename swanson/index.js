@@ -11,9 +11,9 @@ var uuid = require('node-uuid');
 var del = require('del');
 var env = require('../env');
 var api = require('../api');
+var buildQueue = require('./buildQueue.js');
 
-var log 	= api.log.create('swanson-index');
-var cache	= api.cache.create('webhooks:');
+var log = api.log.create('swanson-index');
 
 process.on('message', function(msg) {  
 
@@ -27,7 +27,6 @@ process.on('message', function(msg) {
 
 var swansonHandler = function(req, res) {
 
-	var swansonPath = path.resolve('./swanson');
 	var sourcePath = path.resolve('.');
 
 	var changes = {
@@ -48,7 +47,7 @@ var swansonHandler = function(req, res) {
 		changes.added = changes.added.concat(obj.added);
 	});
 	
-	var manifest = JSON.stringify([
+	var manifest = [
 		//	The folder into which the repo is cloned
 		//
 		path.join(env.WORKING_DIRECTORY, hash),
@@ -61,36 +60,18 @@ var swansonHandler = function(req, res) {
 		//	Change data that was pushed by hook
 		//
 		changes
-	]);
-	
-	//	Check if there is an active build; cache if so.
-	//
-	cache
-	.get('currentbuild')
-	.then(function(results) {
-		var q = {};
-		//	If currently building, cache
-		//
-		if(res[0]) {
-		
-			q[hash] = JSON.stringify(manifest);
-			
-			cache
-				.set('queuedbuilds', q)
-				.catch(function(err) {
-					log.error(err);
-				});
-			
-			return;
-		}
+	];
 	
 	console.log(manifest);
+	console.log(buildQueue);
 	
-		if(req.get('X-Github-Event') == "push") {
-			fork(swansonPath + '/push.js', [manifest]);
-		}
-		
-		res.send('ok');
+	//	Add the build, then report whether queued or building.
+	//
+	buildQueue.add(req.get('X-Github-Event'), JSON.stringify(manifest))
+	.then(function(queued) {		
+		res.send(queued ? 'queued' : 'building');
+	}).catch(function(err) {
+		res.send('Unable to build: ' + err);
 	});
 }
 
