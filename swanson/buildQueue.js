@@ -34,7 +34,7 @@ var complete = function() {
 			
 			log.info("=======", data.list);
 			
-			var next = data.list[0];
+			var next = data.list.shift();
 			
 			data.list = JSON.stringify(data.list);
 			
@@ -86,17 +86,21 @@ var add = function(event, manifest) {
 			data.list = JSON.parse(data.list);
 			
 			var queueRequest = !!data.list.length;
+			
+			console.log("__ Q REQUST +", queueRequest);
 	
 			//	Either way, we're adding to the queue
 			//
 			data.list.push(manifest);
 			
 			data.list = JSON.stringify(data.list);
-
+			
 			//	For a queued item, this indicates queue entry time.
 			//	Otherwise, this indicates the build start time.
 			//
 			data.stamp = Date.now();
+			
+			log.info("@@@@@@", data);
 			
 			//	Update the queue, and start build if new
 			//
