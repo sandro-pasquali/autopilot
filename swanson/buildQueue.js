@@ -18,6 +18,8 @@ var complete = function() {
 		cache.get('data').then(function(arr) {
 		
 			var data = util.isArray(arr) ? arr[0] : arr;
+			
+		log.info('++++', data);
 		
 			if(lib.trueTypeOf(data) !== 'object') {
 				return resolve();
@@ -30,7 +32,7 @@ var complete = function() {
 			//
 			data.list.shift();
 			
-			console.log("+++++++", data.list);
+			log.info("=======", data.list);
 			
 			var next = data.list[0];
 			
@@ -39,8 +41,8 @@ var complete = function() {
 			cache.set('data', data).then(function() {
 				if(next) {
 					add('push', next);
-					resolve();
 				}
+				resolve();
 			}).catch(reject);		
 		}).catch(reject);
 	});
