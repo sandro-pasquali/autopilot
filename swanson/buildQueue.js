@@ -19,37 +19,51 @@ var complete = function() {
 	//	Remove last build from queue
 	//
 	cache.get('data').then(function(data) {
+	
 		if(!data) {
 			return;
 		}
 		
+		data.list = JSON.parse(data.list);
+				
 		//	Lose the head (the last build), see if there
 		//	is a queued build, and if there is, run that.
 		//
 		data.list.shift();
 		
+		var remaining = data.list;
+		
+		data.list = JSON.stringify(remaining);
+		
 		cache.set('data', data).then(function() {
-			if(data.list.length) {
-				add('push', data.list[0]);
+			if(remaining.length) {
+				add('push', remaining[0]);
 			}
-		}).catch(log.error.bind(log));		
-	}).catch(log.error.bind(log));
+		}).catch(function(err) {
+			log.error(err);
+		});		
+	}).catch(function(err) {
+		log.error(err);
+	});
 };
 
 var list = function() {
 	return new Promise(function(resolve, reject) {
 		cache.get('data').then(function(obj) {
-			resolve(obj.list);
-		}).catch(log.error.bind(log));
+			resolve(JSON.parse(obj.list));
+		}).catch(function(err) {
+			log.error(err);
+		});
 	});
 };
 
-var add = function(event, manifestJSON) {
+var add = function(event, manifest) {
 
 	return new Promise(function(resolve, reject) {
-		if(!event || !manifestJSON) {
+		if(!event || !manifest) {
 			return reject(new TypeError('#add received bad arguments'));
 		}
+		
 		cache.get('data').then(function(obj) {
 		
 			var data = obj;
@@ -64,11 +78,15 @@ var add = function(event, manifestJSON) {
 				};					
 			}
 			
-			var queueRequest = !!list.length;
+			var queueRequest = !!data.list.length;
+			
+			data.list = JSON.parse(data.list);
 						
 			//	Either way, we're adding to the queue
 			//
-			data.list.push(manifestJSON);
+			data.list.push(manifest);
+			
+			data.list = JSON.stringify(data.list);
 			
 			//	If there is something in the list (queue), queue
 			//	this request.
@@ -78,7 +96,9 @@ var add = function(event, manifestJSON) {
 				.then(function() {
 					resolve(true);
 				})
-				.catch(log.error.bind(log));
+				.catch(function(err) {
+					log.error(err);
+				});
 				
 				return;
 			}
@@ -91,15 +111,21 @@ var add = function(event, manifestJSON) {
 				//	now just "push"
 				//
 				try {
-					fork(__dirname + '/push.js', [manifestJSON]);
+					fork(__dirname + '/push.js', [JSON.stringify(manifest)]);
 				} catch(e) {
 					log.error(e);
 				}
 				resolve(false);
 				
-			}).catch(log.error.bind(log));
+			}).catch(function(err) {
+				console.log('1', err);
+				log.error(err) 
+			});
 			
-		}).catch(log.error.bind(log));
+		}).catch(function(err) {
+			console.log('2', err)
+			log.error(err);
+		});
 	});
 };
 

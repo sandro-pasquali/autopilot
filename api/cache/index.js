@@ -69,12 +69,11 @@ Cache.prototype.get = function(key) {
 		//
 		if(!lib.validArgument(key, ['array', 'string'], 'string')) {
 			return reject(new TypeError('#get expects a string, or an array of strings'));
-		}
-							
+		}		
 		//	Ensure #key is always array
 		//
 		key = typeof key === 'string' ? [key] : key;
-							
+			
 		ensureClient(function() {
 			var multi = client.multi();
 			key.forEach(function(k) {

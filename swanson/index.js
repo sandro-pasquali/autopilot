@@ -64,7 +64,7 @@ var swansonHandler = function(req, res) {
 	
 	//	Add the build, then report whether queued or building.
 	//
-	buildQueue.add(req.get('X-Github-Event'), JSON.stringify(manifest))
+	buildQueue.add(req.get('X-Github-Event'), manifest)
 	.then(function(queued) {		
 		res.send(queued ? 'queued' : 'building');
 	}).catch(function(err) {
