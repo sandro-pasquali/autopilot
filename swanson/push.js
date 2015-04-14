@@ -97,9 +97,9 @@ var prepareClone = function(cb) {
 	log.info("*WRITING CONFIG: " + command);
 };
 
-var cleanAndRestart = function(cb) {	
+var cleanAndRestart = function() {	
 	var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
-	exec(command, cb);
+	exec(command);
 	log.info("*WEBHOOK RESTARTING: " + command);
 	//	Done, inform buildQueue.
 	//
