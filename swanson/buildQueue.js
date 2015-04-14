@@ -20,7 +20,9 @@ var complete = function() {
 	
 	//	Remove last build from queue
 	//
-	cache.get('data').then(function(data) {
+	cache.get('data').then(function(arr) {
+	
+		var data = util.isArray(arr) ? arr[0] : arr;
 	
 		if(lib.trueTypeOf(data) !== 'object') {
 			return;
@@ -51,9 +53,10 @@ var complete = function() {
 
 var list = function() {
 	return new Promise(function(resolve, reject) {
-		cache.get('data').then(function(obj) {
-			resolve(lib.trueTypeOf(obj) === 'object' 
-					? JSON.parse(obj.list)
+		cache.get('data').then(function(arr) {
+			var data = util.isArray(arr) ? arr[0] : arr;
+			resolve(lib.trueTypeOf(data) === 'object' 
+					? JSON.parse(data.list)
 					: []);
 		}).catch(function(err) {
 			log.error(err);
@@ -68,9 +71,11 @@ var add = function(event, manifest) {
 			return reject(new TypeError('#add received bad arguments'));
 		}
 		
-		cache.get('data').then(function(obj) {
+		cache.get('data').then(function(arr) {
 		
-			var data = obj;
+			
+		
+			var data = util.isArray(arr) ? arr[0] : arr;
 			
 			log.info("------->", data);
 			
