@@ -97,10 +97,13 @@ var prepareClone = function(cb) {
 	log.info("*WRITING CONFIG: " + command);
 };
 
-var cleanAndRestart = function(cb) {
+var cleanAndRestart = function(cb) {	
 	var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
 	exec(command, cb);
-	log.info("*WEBHOOK RESTART: " + command);
+	log.info("*WEBHOOK RESTARTING: " + command);
+	//	Done, inform buildQueue.
+	//
+	buildQueue.complete(err);
 };
 
 log.info("*WEBHOOK RECEIVED");
@@ -123,12 +126,7 @@ cloneRepo(function(err) {
 				if(err) {
 					return buildQueue.error(err);
 				}
-				cleanAndRestart(function(err) {
-					if(err) {
-						return buildQueue.error(err);
-					}
-					buildQueue.complete(err);
-				});
+				cleanAndRestart();
 			});
 		});
 	});
