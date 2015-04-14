@@ -8,5 +8,6 @@ module.exports = ->
     "fri"
     "sat"
     "sun"
-    "funday"
+    "someday",
+    "doneday"
   ]
