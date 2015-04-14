@@ -22,7 +22,7 @@ var complete = function() {
 		log.info('++++', data);
 		
 			if(lib.trueTypeOf(data) !== 'object') {
-				return resolve();
+				return resolve(false);
 			}
 			
 			data.list = JSON.parse(data.list);
@@ -42,7 +42,8 @@ var complete = function() {
 				if(next) {
 					add('push', next);
 				}
-				resolve();
+				resolve(!next);
+				
 			}).catch(reject);		
 		}).catch(reject);
 	});
@@ -67,9 +68,7 @@ var add = function(event, manifest) {
 		}
 		
 		cache.get('data').then(function(arr) {
-		
-			
-		
+
 			var data = util.isArray(arr) ? arr[0] : arr;
 			
 			log.info("------->", data);
