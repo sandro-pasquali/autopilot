@@ -101,18 +101,15 @@ var cleanAndRestart = function() {
 
 	//	Done, inform buildQueue.
 	//
-	buildQueue.complete(err).then(function() {
-	
+	buildQueue.complete().then(function() {
+		log.info("*CLEANING AND RESTARTING");
 		var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
 		exec(command);
-		log.info("*WEBHOOK RESTARTING: " + command);
 		
 	}).catch(function(err) {
 		log.error(err);
 	});
 };
-
-log.info("*WEBHOOK RECEIVED");
 
 //	The action -- clone, build, move, restart
 //
