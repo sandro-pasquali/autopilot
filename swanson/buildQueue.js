@@ -72,6 +72,8 @@ var add = function(event, manifest) {
 		
 			var data = obj;
 			
+			log.info("------->", data);
+			
 			//	#data key is never deleted once created; we only
 			//	push/shift from data.list. So this is rarely necessary.
 			//
