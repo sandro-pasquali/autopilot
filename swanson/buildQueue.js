@@ -18,19 +18,19 @@ var complete = function() {
 	
 	//	Remove last build from queue
 	//
-	cache.get('data').then(function(obj) {
-		if(!obj) {
+	cache.get('data').then(function(data) {
+		if(!data) {
 			return;
 		}
 		
 		//	Lose the head (the last build), see if there
 		//	is a queued build, and if there is, run that.
 		//
-		obj.list.shift();
+		data.list.shift();
 		
-		cache.set('data', obj).then(function() {
-			if(obj.list.length) {
-				add('push', obj.list[0]);
+		cache.set('data', data).then(function() {
+			if(data.list.length) {
+				add('push', data.list[0]);
 			}
 		}).catch(log.error);		
 	}).catch(log.error);
