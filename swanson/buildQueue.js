@@ -18,8 +18,6 @@ var complete = function() {
 		cache.get('data').then(function(arr) {
 		
 			var data = util.isArray(arr) ? arr[0] : arr;
-			
-		log.info('++++', data);
 		
 			if(lib.trueTypeOf(data) !== 'object') {
 				return resolve(false);
@@ -32,12 +30,11 @@ var complete = function() {
 			//
 			data.list.shift();
 			
-			log.info("=======", data.list);
-			
 			var next = data.list.shift();
 			
 			data.list = JSON.stringify(data.list);
 			
+			//	After storing data, push if there is 
 			cache.set('data', data).then(function() {
 				if(next) {
 					add('push', next);
@@ -86,8 +83,6 @@ var add = function(event, manifest) {
 			data.list = JSON.parse(data.list);
 			
 			var queueRequest = !!data.list.length;
-			
-			console.log("__ Q REQUST +", queueRequest);
 	
 			//	Either way, we're adding to the queue
 			//
@@ -99,8 +94,6 @@ var add = function(event, manifest) {
 			//	Otherwise, this indicates the build start time.
 			//
 			data.stamp = Date.now();
-			
-			log.info("@@@@@@", data);
 			
 			//	Update the queue, and start build if new
 			//
