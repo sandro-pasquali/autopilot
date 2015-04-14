@@ -98,12 +98,18 @@ var prepareClone = function(cb) {
 };
 
 var cleanAndRestart = function() {	
-	var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
-	exec(command);
-	log.info("*WEBHOOK RESTARTING: " + command);
+
 	//	Done, inform buildQueue.
 	//
-	buildQueue.complete(err);
+	buildQueue.complete(err).then(function() {
+	
+		var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
+		exec(command);
+		log.info("*WEBHOOK RESTARTING: " + command);
+		
+	}).catch(function(err) {
+		log.error(err);
+	});
 };
 
 log.info("*WEBHOOK RECEIVED");
@@ -112,19 +118,19 @@ log.info("*WEBHOOK RECEIVED");
 //
 cloneRepo(function(err) {
 	if(err) {
-		return buildQueue.error(err);
+		return log.error(err);
 	}
 	prepareClone(function(err) {
 		if(err) {
-			return buildQueue.error(err);
+			return log.error(err);
 		}
 		enterAndBuild(function(err, data) {
 			if(err) {
-				return buildQueue.error(err);
+				return log.error(err);
 			}
 			move(function(err) {
 				if(err) {
-					return buildQueue.error(err);
+					return log.error(err);
 				}
 				cleanAndRestart();
 			});
