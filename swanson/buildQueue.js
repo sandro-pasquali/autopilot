@@ -1,8 +1,10 @@
 var fork = require('child_process').fork;
 var path = require('path');
 var Promise = require('bluebird');
+var util = require('util');
 var env = require('../env');
 var api = require('../api');
+var lib = require('../lib');
 
 var log 	= api.log.create('build:');
 var cache	= api.cache.create('buildqueue:');
@@ -20,7 +22,7 @@ var complete = function() {
 	//
 	cache.get('data').then(function(data) {
 	
-		if(!data) {
+		if(lib.trueTypeOf(data) !== 'object') {
 			return;
 		}
 		
@@ -50,7 +52,9 @@ var complete = function() {
 var list = function() {
 	return new Promise(function(resolve, reject) {
 		cache.get('data').then(function(obj) {
-			resolve(JSON.parse(obj.list));
+			resolve(lib.trueTypeOf(obj) === 'object' 
+					? JSON.parse(obj.list)
+					: []);
 		}).catch(function(err) {
 			log.error(err);
 		});
@@ -71,17 +75,17 @@ var add = function(event, manifest) {
 			//	#data key is never deleted once created; we only
 			//	push/shift from data.list. So this is rarely necessary.
 			//
-			if(data === null) {
+			if(lib.trueTypeOf(data) !== 'object') {
 				data = {
 					started: 0,
-					list: []
+					list: '[]' // normally this is stringified JSON; emulate
 				};					
 			}
+		
+			data.list = JSON.parse(data.list);
 			
 			var queueRequest = !!data.list.length;
-			
-			data.list = JSON.parse(data.list);
-						
+	
 			//	Either way, we're adding to the queue
 			//
 			data.list.push(manifest);
@@ -103,8 +107,10 @@ var add = function(event, manifest) {
 				return;
 			}
 			
-			//	Queue is clean. Add the current and start build.
+			//	Queue is clean. Update queue and start build
 			//
+			data.started = Date.now();
+			
 			cache.set('data', data).then(function() {
 				//	TODO: will prob. want to store some aspects of the
 				//	manifest in api.log, and do something re: event type.
@@ -123,7 +129,7 @@ var add = function(event, manifest) {
 			});
 			
 		}).catch(function(err) {
-			console.log('2', err)
+			console.log('2', err.stack)
 			log.error(err);
 		});
 	});
