@@ -9,45 +9,40 @@ var lib = require('../lib');
 var log 	= api.log.create('build:');
 var cache	= api.cache.create('buildqueue:');
 
-var error = function(err) {
-	if(error) {
-		log.error(err);
-	}
-};
-
 var complete = function() {
-	log.info('Build completed');
+
+	return new Promise(function(resolve, reject) {
 	
-	//	Remove last build from queue
-	//
-	cache.get('data').then(function(arr) {
-	
-		var data = util.isArray(arr) ? arr[0] : arr;
-	
-		if(lib.trueTypeOf(data) !== 'object') {
-			return;
-		}
-		
-		data.list = JSON.parse(data.list);
-				
-		//	Lose the head (the last build), see if there
-		//	is a queued build, and if there is, run that.
+		//	Remove last build from queue
 		//
-		data.list.shift();
+		cache.get('data').then(function(arr) {
 		
-		var next = data.list[0];
+			var data = util.isArray(arr) ? arr[0] : arr;
 		
-		data.list = JSON.stringify(data.list);
-		
-		cache.set('data', data).then(function() {
-			if(next) {
-				add('push', next);
+			if(lib.trueTypeOf(data) !== 'object') {
+				return resolve();
 			}
-		}).catch(function(err) {
-			log.error(err);
-		});		
-	}).catch(function(err) {
-		log.error(err);
+			
+			data.list = JSON.parse(data.list);
+					
+			//	Lose the head (the last build), see if there
+			//	is a queued build, and if there is, run that.
+			//
+			data.list.shift();
+			
+			console.log("+++++++", data.list);
+			
+			var next = data.list[0];
+			
+			data.list = JSON.stringify(data.list);
+			
+			cache.set('data', data).then(function() {
+				if(next) {
+					add('push', next);
+					resolve();
+				}
+			}).catch(reject);		
+		}).catch(reject);
 	});
 };
 
@@ -58,9 +53,7 @@ var list = function() {
 			resolve(lib.trueTypeOf(data) === 'object' 
 					? JSON.parse(data.list)
 					: []);
-		}).catch(function(err) {
-			log.error(err);
-		});
+		}).catch(reject);
 	});
 };
 
@@ -118,27 +111,19 @@ var add = function(event, manifest) {
 				//
 				try {
 					fork(__dirname + '/push.js', [JSON.stringify(manifest)]);
-				} catch(e) {
-					log.error(e);
+				} catch(err) {
+					return reject(err)
 				}
 				
 				resolve(false);
 				
-			}).catch(function(err) {
-				console.log('1', err);
-				log.error(err) 
-			});
-			
-		}).catch(function(err) {
-			console.log('2', err.stack)
-			log.error(err);
-		});
+			}).catch(reject);
+		}).catch(reject);
 	});
 };
 
 module.exports = {
 	list : list,
 	add : add,
-	error : error,
 	complete : complete
 };
