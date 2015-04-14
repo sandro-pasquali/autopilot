@@ -33,13 +33,13 @@ var complete = function() {
 		//
 		data.list.shift();
 		
-		var remaining = data.list;
+		var next = data.list[0];
 		
-		data.list = JSON.stringify(remaining);
+		data.list = JSON.stringify(data.list);
 		
 		cache.set('data', data).then(function() {
-			if(remaining.length) {
-				add('push', remaining[0]);
+			if(next) {
+				add('push', next);
 			}
 		}).catch(function(err) {
 			log.error(err);
@@ -77,7 +77,7 @@ var add = function(event, manifest) {
 			//
 			if(lib.trueTypeOf(data) !== 'object') {
 				data = {
-					started: 0,
+					stamp: 0,
 					list: '[]' // normally this is stringified JSON; emulate
 				};					
 			}
@@ -91,27 +91,20 @@ var add = function(event, manifest) {
 			data.list.push(manifest);
 			
 			data.list = JSON.stringify(data.list);
-			
-			//	If there is something in the list (queue), queue
-			//	this request.
+
+			//	For a queued item, this indicates queue entry time.
+			//	Otherwise, this indicates the build start time.
 			//
-			if(queueRequest) {
-				cache.set('data', data)
-				.then(function() {
-					resolve(true);
-				})
-				.catch(function(err) {
-					log.error(err);
-				});
-				
-				return;
-			}
+			data.stamp = Date.now();
 			
-			//	Queue is clean. Update queue and start build
+			//	Update the queue, and start build if new
 			//
-			data.started = Date.now();
-			
 			cache.set('data', data).then(function() {
+			
+				if(queueRequest) {
+					return resolve(true);
+				}
+				
 				//	TODO: will prob. want to store some aspects of the
 				//	manifest in api.log, and do something re: event type.
 				//	now just "push"
@@ -121,6 +114,7 @@ var add = function(event, manifest) {
 				} catch(e) {
 					log.error(e);
 				}
+				
 				resolve(false);
 				
 			}).catch(function(err) {
