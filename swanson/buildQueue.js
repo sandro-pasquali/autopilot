@@ -65,7 +65,7 @@ var add = function(event, manifestJSON) {
 			}
 			
 			var queueRequest = !!list.length;
-			
+						
 			//	Either way, we're adding to the queue
 			//
 			data.list.push(manifestJSON);
@@ -95,7 +95,6 @@ var add = function(event, manifestJSON) {
 				} catch(e) {
 					log.error(e);
 				}
-				
 				resolve(false);
 				
 			}).catch(log.error.bind(log));

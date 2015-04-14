@@ -121,17 +121,16 @@ Cache.prototype.set = function(key, val, ttl) {
 		key = typeof key === 'string' ? [key] : key;
 		
 		//	Valid if:
-		//		(An object, or
-		//		An array, and key = array, and both arrays of equal length)
-		//			(if object with only strings as values)
+		//		An object, or
+		//		An array, and key = array, and both arrays of equal length
 		//
 		if(!lib.validArgument(val, ['object', function(cand) {
 			if(util.isArray(cand)) {
 				return cand.length === key.length;
 			}
 			return false;
-		}], 'string')) {
-			return reject(new TypeError('Second argument to #set must be either a single map of key/value pairs with only Strings as values, or an array of these maps of length === to first argument (Array) length.'));		
+		}])) {
+			return reject(new TypeError('Second argument to #set must be either a single map of key/value pairs, or an array of these maps of length === to first argument (Array) length.'));		
 		}
 
 		//	After validation #val must always be an Array of equal length to 
