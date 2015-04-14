@@ -83,7 +83,7 @@ Cache.prototype.get = function(key) {
 				if(err) {
 					return reject(err);
 				}
-				resolve(vals.length > 1 ? vals : vals[0]);
+				resolve(vals);
 			});
 		});
 	});
@@ -157,9 +157,9 @@ Cache.prototype.set = function(key, val, ttl) {
 					return reject(new Error(err));
 				}
 				
-				//	Send back key array
+				//	Redis returns list of successfully set keys
 				//
-				resolve(key.length > 1 ? key : key[0]);
+				resolve(key);
 			});
 		});
 	});
