@@ -32,15 +32,15 @@ var complete = function() {
 			if(data.list.length) {
 				add('push', data.list[0]);
 			}
-		}).catch(log.error);		
-	}).catch(log.error);
+		}).catch(log.error.bind(log));		
+	}).catch(log.error.bind(log));
 };
 
 var list = function() {
 	return new Promise(function(resolve, reject) {
 		cache.get('data').then(function(obj) {
 			resolve(obj.list);
-		}).catch(log.error);
+		}).catch(log.error.bind(log));
 	});
 };
 
@@ -78,7 +78,7 @@ var add = function(event, manifestJSON) {
 				.then(function() {
 					resolve(true);
 				})
-				.catch(log.error);
+				.catch(log.error.bind(log));
 				
 				return;
 			}
@@ -98,9 +98,9 @@ var add = function(event, manifestJSON) {
 				
 				resolve(false);
 				
-			}).catch(log.error);
+			}).catch(log.error.bind(log));
 			
-		}).catch(log.error);
+		}).catch(log.error.bind(log));
 	});
 };
 
