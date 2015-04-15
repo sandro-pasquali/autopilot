@@ -72,6 +72,8 @@ module.exports = function(app, server) {
 	}
 	
 	//	Start build service.
+	//	TODO : actually check if service is already running rather than
+	//	causing errors -- use pm2 module.
 	//
 	exec('pm2 start swanson/buildService.js --name="' + env.PM2_BUILD_SERVICE_NAME + '"', function(err) {
 		log.error(err);
@@ -118,7 +120,7 @@ module.exports = function(app, server) {
 			changes
 		];
 		
-		wire.publish('webhook:' + req.get('X-Github-Event'), manifest);
+		wire.publish('webhook:' + req.get('X-Github-Event'), JSON.stringify(manifest));
 		
 		res.send('ok');
 	});		
