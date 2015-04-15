@@ -34,12 +34,14 @@ var complete = function() {
 			
 			data.list = JSON.stringify(data.list);
 			
-			//	After storing data, push if there is 
+			//	Store, then check if we have more, and start the
+			//	process again if we do. Notify caller if more is being done.
+			//
 			cache.set('data', data).then(function() {
 				if(next) {
 					add('push', next);
 				}
-				resolve(!next);
+				resolve(!!next);
 				
 			}).catch(reject);		
 		}).catch(reject);
