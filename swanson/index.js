@@ -120,6 +120,8 @@ module.exports = function(app, server) {
 			changes
 		];
 		
+		console.log(JSON.stringify(manifest))
+		
 		wire.publish('webhook:' + req.get('X-Github-Event'), JSON.stringify(manifest));
 		
 		res.send('ok');
