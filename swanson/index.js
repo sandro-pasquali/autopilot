@@ -5,15 +5,14 @@ var os = require('os');
 var path = require('path');
 var util = require('util');
 var exec = require('child_process').exec;
-var fork = require('child_process').fork;
 var pm2 = require('pm2');
 var uuid = require('node-uuid');
 var del = require('del');
 var env = require('../env');
 var api = require('../api');
-var buildQueue = require('./buildQueue.js');
 
 var log = api.log.create('swanson-index');
+var wire = api.wire;
 
 process.on('message', function(msg) {  
 
@@ -24,53 +23,6 @@ process.on('message', function(msg) {
 		//	any cleanup you need to do
 	}
 });
-
-var swansonHandler = function(req, res) {
-
-	var sourcePath = path.resolve('.');
-
-	var changes = {
-		added : [],
-		removed : [],
-		modified : []
-	};
-		
-	if(!req.body.commits) {
-		return;
-	}
-	
-	var hash = req.body.after;
-		
-	req.body.commits.forEach(function(obj) {
-		changes.removed = changes.removed.concat(obj.removed);
-		changes.modified = changes.modified.concat(obj.modified);
-		changes.added = changes.added.concat(obj.added);
-	});
-	
-	var manifest = [
-		//	The folder into which the repo is cloned
-		//
-		path.join(env.WORKING_DIRECTORY, hash),
-		//	The Github url for the repo
-		//
-		req.body.repository.clone_url,
-		//	The root of the production repo we are running/changing
-		//
-		sourcePath,
-		//	Change data that was pushed by hook
-		//
-		changes
-	];
-	
-	//	Add the build, then report whether queued or building.
-	//
-	buildQueue.add(req.get('X-Github-Event'), manifest)
-	.then(function(queued) {		
-		res.send(queued ? 'queued' : 'building');
-	}).catch(function(err) {
-		res.send('Unable to build: ' + err);
-	});
-}
 
 var listen = function(app, server) {
 	//	Note that this will throw if a server is already running.
@@ -119,11 +71,57 @@ module.exports = function(app, server) {
 		return;
 	}
 	
+	//	Start build service.
+	//
+	exec('pm2 start swanson/buildService.js --name="' + env.PM2_BUILD_SERVICE_NAME + '"', function(err) {
+		log.error(err);
+	});
+	
 	listen(app, server);
 	
 	//	The route called by Github on hook event in PRODUCTION servers
 	//
-	app.post('/swanson', swansonHandler);		
+	app.post('/swanson', function(req, res) {
+
+		var sourcePath = path.resolve('.');
+	
+		var changes = {
+			added : [],
+			removed : [],
+			modified : []
+		};
+			
+		if(!req.body.commits) {
+			return;
+		}
+		
+		var hash = req.body.after;
+			
+		req.body.commits.forEach(function(obj) {
+			changes.removed = changes.removed.concat(obj.removed);
+			changes.modified = changes.modified.concat(obj.modified);
+			changes.added = changes.added.concat(obj.added);
+		});
+		
+		var manifest = [
+			//	The folder into which the repo is cloned
+			//
+			path.join(env.WORKING_DIRECTORY, hash),
+			//	The Github url for the repo
+			//
+			req.body.repository.clone_url,
+			//	The root of the production repo we are running/changing
+			//
+			sourcePath,
+			//	Change data that was pushed by hook
+			//
+			changes
+		];
+		
+		wire.publish('webhook:' + req.get('X-Github-Event'), manifest);
+		
+		res.send('ok');
+	});		
 	
 	//	PM2 is running in cluster mode. When the clustering re-calls this
 	//	server, it will be via the script 

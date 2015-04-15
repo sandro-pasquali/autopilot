@@ -48,6 +48,7 @@ export GITHUB_REPO_NAME=autopilot
 #
 export PM2_PRODUCTION_NAME=autopilot-server
 export PM2_DEVELOPMENT_NAME=autopilot-dev
+export PM2_BUILD_SERVICE_NAME=autopilot-build-service
 
 #	This last group is exposed/changeable when you run configuration tool.
 #
