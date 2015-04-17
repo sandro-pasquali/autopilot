@@ -102,7 +102,7 @@ var cleanAndRestart = function() {
 	//	Done, inform buildQueue.
 	//
 	buildQueue.complete().then(function(queueEmpty) {
-		log.info("*CLEANING AND RESTARTING", restart);
+		log.info("*RESTARTING queueEmpty:", queueEmpty);
 		
 		var command = 'rm -rf ' + cloneDir + ';pm2 gracefulReload ' + env.PM2_PRODUCTION_NAME;
 
