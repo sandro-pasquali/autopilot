@@ -239,7 +239,7 @@ gulp.task('browsersync', function(cb) {
 	if(env.DEV_AUTO_RELOAD !== 'yes' || env.BUILD_ENVIRONMENT !== "development") {
 		return cb();
 	}
-console.log('++++++ starting browsersync');
+
 	browserSync({
 		notify: false,
 		injectChanges: false,
