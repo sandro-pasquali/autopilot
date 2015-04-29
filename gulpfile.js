@@ -30,7 +30,7 @@ var api = require('./api');
 
 var log = api.log.create('gulp');
 
-//	@see	#browser-sync
+//	@see	#browsersync
 //
 var PM2IsReloading = false;
 
@@ -68,13 +68,14 @@ var linkedTasks = [
 	'templates',
 	'partials',
 	'browserify',
-	'browser-sync',
+	'browsersync',
 	'views'
 ];
 
-del.sync(env.BUILD_DIR);
-
 gulp.task('scaffold', function() {
+
+	del.sync(env.BUILD_DIR);
+	
 	[
 		'SOURCE_VIEWS_DIR',
 		'SOURCE_TEMPLATES_DIR',
@@ -144,7 +145,7 @@ gulp.task('coffee', ['lint-coffee'], function() {
 //	Convert .scss files to .css files, keeping in source directory.
 //	These are then concatenated by styles-css
 //
-gulp.task('scss', function() {
+gulp.task('scss', ['scaffold'], function() {
     return gulp.src(path.join(env.SOURCE_STYLES_DIR, '**/*.scss'))
   		.pipe(changed(env.SOURCE_STYLES_DIR, {
   			extension: '.css'
@@ -170,7 +171,7 @@ gulp.task('concat-css', ['scss'], function() {
 		}));
 });
 
-gulp.task('templates', function () {  
+gulp.task('templates', ['scaffold'], function () {  
 	return gulp.src(path.join(env.SOURCE_TEMPLATES_DIR, '/**/*.hbs'))
 		.pipe(debug({
 			title: 'compiling templates:'
@@ -186,10 +187,26 @@ gulp.task('templates', function () {
 		}));
 });
 
-gulp.task('partials', function() {  
+gulp.task('partials', ['scaffold'], function() {  
 	return gulp.src(path.join(env.SOURCE_PARTIALS_DIR, '/**/*.html'))
   		.pipe(changed(env.PARTIALS_DIR))
 		.pipe(gulp.dest(env.PARTIALS_DIR))
+		.pipe(reload({
+			stream: true
+		}));
+});
+
+//	All .html files in source folder
+//
+gulp.task('views', ['scaffold'], function() {
+	return gulp.src(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'))
+		.pipe(debug({
+			title: 'building views:'
+		}))
+		.pipe(minifyHTML({
+			empty: true
+		}))
+		.pipe(gulp.dest(env.VIEWS_DIR))
 		.pipe(reload({
 			stream: true
 		}));
@@ -214,23 +231,7 @@ gulp.task('browserify', ['coffee', 'js', 'templates'], function() {
 		}));
 });
 
-//	All .html files in source folder
-//
-gulp.task('views', ['scaffold'], function() {
-	return gulp.src(path.join(env.SOURCE_VIEWS_DIR, '**/*.html'))
-		.pipe(debug({
-			title: 'building views:'
-		}))
-		.pipe(minifyHTML({
-			empty: true
-		}))
-		.pipe(gulp.dest(env.VIEWS_DIR))
-		.pipe(reload({
-			stream: true
-		}));
-});
-
-gulp.task('browser-sync', ['browserify'], function(cb) {
+gulp.task('browsersync', function(cb) {
 
 	//	Ignore if no reload is requested, or not in DEVELOPMENT
 	//	mode (only auto reload in dev mode)
@@ -238,7 +239,7 @@ gulp.task('browser-sync', ['browserify'], function(cb) {
 	if(env.DEV_AUTO_RELOAD !== 'yes' || env.BUILD_ENVIRONMENT !== "development") {
 		return cb();
 	}
-
+console.log('++++++ starting browsersync');
 	browserSync({
 		notify: false,
 		injectChanges: false,
@@ -287,10 +288,10 @@ gulp.task('default', linkedTasks, function(cb) {
 
 //	This is a non-browsersync run. It is intended for the initial
 //	build of this repo, post-initial-clone. You can also use it if
-//	you don't want browser-sync...
+//	you don't want browsersync...
 //
 gulp.task('init', linkedTasks.filter(function(i) { 
-	return i !== 'browser-sync'; 
+	return i !== 'browsersync'; 
 }), function(cb) {
 	cb();
 });

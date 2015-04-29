@@ -27,7 +27,6 @@ export LOG_FILE=swanson/output.log
 #
 export NEED_NODE_VERSION=>%3D0.12.x
 
-export LEVEL_DB=data/main.db
 export REDIS_MAX_ATTEMPTS=10
 
 #	Where the cloning and other testing of repos happens

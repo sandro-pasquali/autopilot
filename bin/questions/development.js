@@ -1,6 +1,7 @@
 "use strict";
 
 var ask = require('./ask.js');
+var _ = require('lodash');
 
 var group1 = function(config) {
 	return [{

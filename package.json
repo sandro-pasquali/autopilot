@@ -17,8 +17,7 @@
   "scripts": {
     "test": "mocha ./spec --require ./spec/helpers/chai.js --reporter spec",
     "config": "node bin/config.js",
-    "server": "node ./server.js",
-    "start": "npm run config; gulp init; npm run server"
+    "start": "npm run config; gulp init; node ./server.js; gulp browsersync;"
   },
   "author": "Sandro Pasquali <spasquali@gmail.com>",
   "license": "MIT",
@@ -33,7 +32,6 @@
     "coffee-script": "^1.9.0",
     "colors": "^1.0.3",
     "del": "^1.1.1",
-    "dulcimer": "^2.8.4",
     "express": "^4.12.2",
     "express-session": "^1.10.4",
     "github": "^0.2.3",
@@ -56,7 +54,6 @@
     "hbs": "^3.0.1",
     "hiredis": "^0.3.0",
     "inquirer": "^0.8.2",
-    "level": "^0.18.0",
     "lodash": "^3.6.0",
     "mkdirp": "^0.5.0",
     "mocha": "^2.1.0",
@@ -71,6 +68,7 @@
   },
   "dependencies": {
     "handlebars": "^2.0.0",
-    "jquery": "*"
+    "jquery": "*",
+    "mongodb": "^2.0.28"
   }
 }
