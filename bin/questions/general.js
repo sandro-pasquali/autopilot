@@ -31,17 +31,20 @@ var group = function(config) {
 		type: "checkbox",
 		name: "services",
 		choices: [{
-			name : 'Loggly (log storage)',
+			name : 'Loggly',
 			value : 'loggly'
 		}, {
-			name : 'Stripe (credit card transactions)',
+			name : 'Stripe',
 			value : 'stripe'
 		}, {
-			name : 'SendGrid (send emails)',
+			name : 'SendGrid (Email)',
 			value : 'sendgrid'
 		}, {
-			name : 'AWS (Amazon Web Services)',
+			name : 'Amazon Web Services',
 			value : 'aws'
+		}, {
+			name : 'MongoLab',
+			value : 'mongolab'
 		}],
 		message: "Select any 3rd-party services you'd like to enable"
 	}];
@@ -109,6 +112,34 @@ var services = {
 			name: "AWS_SECRET_ACCESS_KEY",
 			default: config.SECRET_ACCESS_KEY,
 			message: "AWS secret access key"
+		}];
+	}, 
+	mongolab: function(config) {
+		return [{
+			type: "input",
+			name: "MONGOLAB_HOST",
+			default: config.MONGOLAB_HOST,
+			message: "MongoLab host (eg. 34234.mongolab.com)"
+		}, {
+			type: "input",
+			name: "MONGOLAB_PORT",
+			default: config.MONGOLAB_PORT,
+			message: "MongoLab port"
+		}, {
+			type: "input",
+			name: "MONGOLAB_USER",
+			default: config.MONGOLAB_USER,
+			message: "MongoLab user"
+		}, {
+			type: "password",
+			name: "MONGOLAB_PASSWORD",
+			default: config.MONGOLAB_PASSWORD,
+			message: "MongoLab password"
+		}, {
+			type: "input",
+			name: "MONGOLAB_DATABASE",
+			default: config.MONGOLAB_DATABASE,
+			message: "MongoLab database"
 		}];
 	}
 };
