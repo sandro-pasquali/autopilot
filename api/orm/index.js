@@ -4,9 +4,9 @@ var env = require('../../env');
 var lib = require('../../lib');
 
 //	Within the api, controllers load deps directly, mainly to handle
-//	the fact that this will be required during api construction itself...
+//	the fact that this will be required during #api construction itself...
 //
-var log = require('../log');
+var log = require('../log').create('orm');
 
 var adapters = {
 	mongoLab :  require('sails-mongo')
@@ -23,40 +23,56 @@ var connections = {
 	}
 };
 
-var Orm = function(adapter) {
+var Orm = function(adapter, options) {
 
 	if(!adapters[adapter]) {
-		
+		return log.error('Unknown adapter: ' + adapter);
 	}
+	
+	options = lib.trueTypeOf(options) === 'object' ? options : {};
 
 	var orm = new Waterline();
 	
+	//	@see #initialize
+	//
 	var initialized = false;
-	var collections = {};
+	var _collections = {};
+	var _connections = {};
 	
+	//	This is the initialization configuration for collections
+	//
 	var config = {
 		adapters : {},
-		connections : {},
+		connections : {}
 	};
 	
+	config.adapters[adapter] = adapters[adapter];
+	config.connections[adapter] = connections[adapter];
+	
+	//	A method to ensure that collections are initialized w/ orm.
+	//	Except for #addCollection, all methods start by executing this,
+	//	ensuring models exist prior to actions. IOW, #addCollections first,
+	//	and when you are done just start running actions. No explicit 
+	//	initialization needed.
+	//
 	var initialize = function(cb) {
 	
 		if(initialized) {
 			return cb();
 		}
-			
+		
 		orm.initialize(config, function(err, models) {
 			if(err) {
 				return log.error(err);
 			}
-			collections = models.collections;
+			
+			_collections = models.collections;
+			_connections = models.connections;
+			
 			initialized = true;
 			cb();
 		});
-	};	
-		
-	config.adapters[adapter] = adapters[adapter];
-	config.connections[adapter] = connections[adapter];
+	};
 	
 	this.getCollection = function(name) {
 		return new Promise(function(resolve, reject) {
@@ -66,9 +82,8 @@ var Orm = function(adapter) {
 			}	
 			
 			initialize(function() {
-			
-				if(collections[name]) {
-					return resolve(collections[name]);
+				if(_collections[name]) {
+					return resolve(_collections[name]);
 				}
 				
 				reject(new Error('No Collection with name ' + name));
@@ -81,6 +96,8 @@ var Orm = function(adapter) {
 		var _this = this;
 		
 		return new Promise(function(resolve, reject) {
+		
+			var mod = {};
 			
 			if(!lib.validArgument(name, 'string')) {
 				return reject(new TypeError('#addCollection expects a string as first argument'));
@@ -92,11 +109,9 @@ var Orm = function(adapter) {
 
 			//	If already exists, inform that collection NOT created.
 			//
-			if(collections[name]) {
+			if(_collections[name]) {
 				return resolve(false);
 			}
-			
-			var mod = {};
 		
 			if(!lib.validArgument(def.attributes, 'object')) {
 				return reject(new TypeError('#addCollection expects #attributes to be defined, and must be an Object'));
@@ -104,15 +119,18 @@ var Orm = function(adapter) {
 			
 			mod.identity = name;
 			mod.connection = adapter;
-			mod.schema = true;
+			mod.schema = typeof def.schema === 'undefined' ? true : false;
 			mod.autoCreatedAt = typeof def.autoCreatedAt === 'undefined' ? false : def.autoCreatedAt;
 			mod.autoUpdatedAt = typeof def.autoUpdatedAt === 'undefined' ? false : def.autoUpdatedAt;
 			
 			mod.attributes = def.attributes;
 
+			//	This 
 			orm.loadCollection(Waterline.Collection.extend(mod));
 
-			resolve(true);
+			//	Return the Promise of a collection object reference
+			//
+			resolve(_this.getCollection(mod.identity));
 		});
 	};
 }
@@ -125,7 +143,7 @@ module.exports = {
 		}
 	},
 	
-	create : function(adapter) {
-		return new Orm(adapter);
+	create : function(adapter, options) {
+		return new Orm(adapter, options);
 	}
 };

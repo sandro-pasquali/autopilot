@@ -27,7 +27,6 @@ var minifyHTML 	= require('gulp-minify-html');
 
 var env = require('./env');
 var api = require('./api');
-
 var log = api.log.create('gulp');
 
 //	@see	#browsersync
@@ -293,5 +292,7 @@ gulp.task('default', linkedTasks, function(cb) {
 gulp.task('init', linkedTasks.filter(function(i) { 
 	return i !== 'browsersync'; 
 }), function(cb) {
-	cb();
+
+
+		cb();
 });
