@@ -37,7 +37,7 @@ var group = function(config) {
 			name : 'Stripe',
 			value : 'stripe'
 		}, {
-			name : 'SendGrid (Email)',
+			name : 'SendGrid',
 			value : 'sendgrid'
 		}, {
 			name : 'Amazon Web Services',
@@ -91,14 +91,14 @@ var services = {
 	sendgrid: function(config) {
 		return [{
 			type: "input",
-			name: "SENDGRID_EMAIL",
-			default: config.SENDGRID_EMAIL,
-			message: "Your SendGrid email address?"
+			name: "SENDGRID_API_KEY",
+			default: config.SENDGRID_API_KEY,
+			message: "Your SendGrid API key"
 		}, {
 			type: "input",
-			name: "SENDGRID_PASSWORD",
-			default: config.SENDGRID_PASSWORD,
-			message: "Your SendGrid password?"
+			name: "SENDGRID_DEFAULT_FROM",
+			default: config.SENDGRID_DEFAULT_FROM,
+			message: "Default From field for all emails"
 		}];
 	}, 
 	aws: function(config) {

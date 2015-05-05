@@ -72,6 +72,7 @@
     "request": "^2.55.0",
     "sails-mongo": "^0.11.0",
     "semver": "^4.3.3",
+    "sendgrid": "^1.7.0",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
     "waterline": "^0.10.21"

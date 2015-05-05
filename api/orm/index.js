@@ -26,7 +26,7 @@ var connections = {
 var Orm = function(adapter, options) {
 
 	if(!adapters[adapter]) {
-		return log.error('Unknown adapter: ' + adapter);
+		return log.error('Unknown adapter sent: ' + adapter);
 	}
 	
 	options = lib.trueTypeOf(options) === 'object' ? options : {};
@@ -118,7 +118,7 @@ var Orm = function(adapter, options) {
 			};
 			
 			mod.identity = name;
-			mod.connection = adapter;
+			mod.connection = adapter;			
 			mod.schema = typeof def.schema === 'undefined' ? true : false;
 			mod.autoCreatedAt = typeof def.autoCreatedAt === 'undefined' ? false : def.autoCreatedAt;
 			mod.autoUpdatedAt = typeof def.autoUpdatedAt === 'undefined' ? false : def.autoUpdatedAt;
