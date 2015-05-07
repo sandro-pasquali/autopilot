@@ -6,7 +6,9 @@ var env = require('../env');
 var api = require('../api');
 var lib = require('../lib');
 
-var log 	= api.log.create('build:');
+var log = api.log.create('bunyan', {
+	name : 'build'
+});
 var cache	= api.cache.create('buildqueue:');
 
 var complete = function() {

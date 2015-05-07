@@ -6,7 +6,9 @@ var lib = require('../../lib');
 //	Within the api, controllers load deps directly, mainly to handle
 //	the fact that this will be required during #api construction itself...
 //
-var log = require('../log').create('orm');
+var log = require('../log').create('bunyan', {
+	name : 'orm'
+});
 
 var adapters = {
 	mongoLab :  require('sails-mongo')

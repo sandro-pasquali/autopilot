@@ -17,7 +17,9 @@ var swanson 	= require('../swanson');
 var env = require('../env');
 var api = require('../api');
 
-var log = api.log.create('router-index');
+var log = api.log.create('bunyan', {
+	name : 'router:index'
+});
 
 var app = express();
 var server = http.createServer(app);

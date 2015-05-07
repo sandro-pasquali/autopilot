@@ -2,7 +2,9 @@ var env = require('../env');
 var api = require('../api');
 
 var buildQueue = require('./buildQueue.js');
-var log = api.log.create('swanson-buildservice');
+var log = api.log.create('bunyan', {
+	name : 'swanson:buildservice'
+});
 
 api.wire.subscribe('webhook:push', function(manifest) {
 	

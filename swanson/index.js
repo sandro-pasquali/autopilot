@@ -11,7 +11,9 @@ var del = require('del');
 var env = require('../env');
 var api = require('../api');
 
-var log = api.log.create('swanson-index');
+var log = api.log.create('bunyan', {
+	name : 'swanson:index'
+});
 var wire = api.wire;
 
 process.on('message', function(msg) {  

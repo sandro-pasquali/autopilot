@@ -25,7 +25,12 @@ apis.forEach(function(p) {
 //
 api.inspect = function(which) {
 
-	which = which || Object.keys(api);
+	//	Either asking for something specific, or get all.
+	//	If get all, strip 'inspect' (this method).
+	//
+	which = which || Object.keys(api).filter(function(k) {
+		return k !== 'inspect';
+	});
 	
 	//	Can send a single module as a string; convert to Array if so.
 	//	Call inspect on all sent modules and return map.

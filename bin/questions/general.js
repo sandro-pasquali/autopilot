@@ -68,24 +68,14 @@ var services = {
 	stripe: function(config) {
 		return [{
 			type: "input",
-			name: "STRIPE_TEST_SECRET_KEY",
-			default: config.STRIPE_TEST_SECRET_KEY,
-			message: "Stripe TEST secret key?"
+			name: "STRIPE_SECRET_KEY",
+			default: config.STRIPE_SECRET_KEY,
+			message: "Your Stripe secret API key (sk_)"
 		}, {
 			type: "input",
-			name: "STRIPE_TEST_PUBLISHABLE_KEY",
-			default: config.STRIPE_TEST_PUBLISHABLE_KEY,
-			message: "Stripe TEST publishable key?"
-		}, {
-			type: "input",
-			name: "STRIPE_LIVE_SECRET_KEY",
-			default: config.STRIPE_LIVE_SECRET_KEY,
-			message: "Stripe LIVE secret key?"
-		}, {
-			type: "input",
-			name: "STRIPE_LIVE_PUBLISHABLE_KEY",
-			default: config.STRIPE_LIVE_PUBLISHABLE_KEY,
-			message: "Stripe LIVE publishable key?"
+			name: "STRIPE_PUBLISHABLE_KEY",
+			default: config.STRIPE_PUBLISHABLE_KEY,
+			message: "Your Stripe publishable API key (pk_)"
 		}];
 	},
 	sendgrid: function(config) {
@@ -94,11 +84,6 @@ var services = {
 			name: "SENDGRID_API_KEY",
 			default: config.SENDGRID_API_KEY,
 			message: "Your SendGrid API key"
-		}, {
-			type: "input",
-			name: "SENDGRID_DEFAULT_FROM",
-			default: config.SENDGRID_DEFAULT_FROM,
-			message: "Default From field for all emails"
 		}];
 	}, 
 	aws: function(config) {
@@ -110,8 +95,13 @@ var services = {
 		}, {
 			type: "input",
 			name: "AWS_SECRET_ACCESS_KEY",
-			default: config.SECRET_ACCESS_KEY,
+			default: config.AWS_SECRET_ACCESS_KEY,
 			message: "AWS secret access key"
+		}, {
+			type: "input",
+			name: "AWS_REGION",
+			default: config.AWS_REGION,
+			message: "AWS Region"
 		}];
 	}, 
 	mongolab: function(config) {

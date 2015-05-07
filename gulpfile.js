@@ -27,7 +27,9 @@ var minifyHTML 	= require('gulp-minify-html');
 
 var env = require('./env');
 var api = require('./api');
-var log = api.log.create('gulp');
+var log = api.log.create('bunyan', {
+	name : 'gulp'
+});
 
 //	@see	#browsersync
 //

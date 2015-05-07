@@ -5,7 +5,7 @@ var lib = require('../../lib');
 //	the fact that this will be required during api construction itself...
 //
 var log = require('../log').create('bunyan', {
-	name : 'api:email'
+	name : 'api:file'
 });
 
 module.exports = {

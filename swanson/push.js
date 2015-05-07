@@ -6,7 +6,9 @@ var path = require('path');
 var env = require('../env');
 var api = require('../api');
 
-var log = api.log.create('swanson-push');
+var log = api.log.create('bunyan', {
+	name : 'swanson:push'
+});
 var buildQueue = require('./buildQueue.js');
 
 var args = process.argv.slice(2);
